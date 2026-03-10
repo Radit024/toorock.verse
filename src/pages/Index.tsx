@@ -4,22 +4,7 @@ import ArticleCard from "@/components/ArticleCard";
 import CategoryBar from "@/components/CategoryBar";
 import LiveScorePanel from "@/components/LiveScorePanel";
 import Pagination from "@/components/Pagination";
-
-import article1 from "@/assets/article-1.jpg";
-import article2 from "@/assets/article-2.jpg";
-import article3 from "@/assets/article-3.jpg";
-import article4 from "@/assets/article-4.jpg";
-import article5 from "@/assets/article-5.jpg";
-import article6 from "@/assets/article-6.jpg";
-
-const articles = [
-  { image: article1, title: "Gundam: Requiem for Vengeance Season 2 Confirmed with Unreal Engine 5.5", category: "Anime", date: "2 hours ago", isBreaking: true },
-  { image: article2, title: "Elden Ring Nightreign — Everything We Know About the Standalone Expansion", category: "Games", date: "5 hours ago" },
-  { image: article3, title: "Solo Leveling Season 3 Announced — Arise Arc Gets Anime Adaptation", category: "Anime", date: "8 hours ago" },
-  { image: article4, title: "Cyberpunk 2077 Sequel 'Project Orion' First Details Leak from CD Projekt Red", category: "Games", date: "12 hours ago", isBreaking: true },
-  { image: article5, title: "Macross Delta Movie Trilogy Finale Drops Stunning New Trailer", category: "Anime", date: "1 day ago" },
-  { image: article6, title: "Your Name Producer Announces New Original Anime Film for 2027", category: "Film", date: "1 day ago" },
-];
+import { articles } from "@/data/articles";
 
 const Index = () => {
   return (
