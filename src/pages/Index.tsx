@@ -9,6 +9,7 @@ import { articles } from "@/data/articles";
 
 const Index = () => {
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <Navbar />
       <TickerBar />
