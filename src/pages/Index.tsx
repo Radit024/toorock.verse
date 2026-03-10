@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
@@ -6,14 +7,34 @@ import CategoryBar from "@/components/CategoryBar";
 import LiveScorePanel from "@/components/LiveScorePanel";
 import SectionBlock from "@/components/SectionBlock";
 import Pagination from "@/components/Pagination";
-import { articles, getArticlesByCategory } from "@/data/articles";
+import { articles as fallbackArticles } from "@/data/articles";
+import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
+import type { Article } from "@/data/articles";
 
 const Index = () => {
+  const [articles, setArticles] = useState<Article[]>(fallbackArticles);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const dbArticles = await fetchPublishedArticles();
+        if (dbArticles.length > 0) {
+          const converted = dbArticles.map(dbToArticle);
+          // Merge: DB articles first, then fallback
+          setArticles([...converted, ...fallbackArticles]);
+        }
+      } catch {
+        // Keep fallback data
+      }
+    };
+    load();
+  }, []);
+
   const latestArticles = articles.slice(0, 6);
-  const animeArticles = getArticlesByCategory("Anime");
-  const gamesArticles = getArticlesByCategory("Games");
-  const esportsArticles = getArticlesByCategory("Esports");
-  const cultureArticles = getArticlesByCategory("Culture");
+  const gamesArticles = articles.filter((a) => a.category === "Games");
+  const animeArticles = articles.filter((a) => a.category === "Anime");
+  const esportsArticles = articles.filter((a) => a.category === "Esports");
+  const cultureArticles = articles.filter((a) => a.category === "Culture" || a.category === "Film");
 
   return (
     <PageTransition>
@@ -32,16 +53,13 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-              {/* First large article */}
               <div className="md:row-span-2 border-r-0 md:border-r border-border">
                 <ArticleCard {...latestArticles[0]} size="large" />
               </div>
-              {/* Two stacked on right */}
               <ArticleCard {...latestArticles[1]} size="medium" />
               <ArticleCard {...latestArticles[2]} size="medium" />
             </div>
 
-            {/* Second row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-0">
               {latestArticles.slice(3).map((article) => (
                 <ArticleCard key={article.id} {...article} size="small" />
@@ -53,7 +71,6 @@ const Index = () => {
           <div className="space-y-6">
             <LiveScorePanel />
 
-            {/* Trending section */}
             <div className="border border-border">
               <div className="border-b border-border px-4 py-3">
                 <h2 className="font-heading text-lg tracking-widest text-foreground">TRENDING</h2>
@@ -78,7 +95,7 @@ const Index = () => {
         <SectionBlock title="GAMES" category="Games" articles={gamesArticles} />
         <SectionBlock title="ANIME" category="Anime" articles={animeArticles} />
         <SectionBlock title="ESPORTS" category="Esports" articles={esportsArticles} />
-        <SectionBlock title="CULTURE & FILM" category="Culture" articles={[...cultureArticles, ...articles.filter(a => a.category === "Film")]} />
+        <SectionBlock title="CULTURE & FILM" category="Culture" articles={cultureArticles} />
 
         <Pagination />
       </main>
