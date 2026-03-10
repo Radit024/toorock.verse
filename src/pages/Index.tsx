@@ -4,10 +4,17 @@ import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
 import CategoryBar from "@/components/CategoryBar";
 import LiveScorePanel from "@/components/LiveScorePanel";
+import SectionBlock from "@/components/SectionBlock";
 import Pagination from "@/components/Pagination";
-import { articles } from "@/data/articles";
+import { articles, getArticlesByCategory } from "@/data/articles";
 
 const Index = () => {
+  const latestArticles = articles.slice(0, 6);
+  const animeArticles = getArticlesByCategory("Anime");
+  const gamesArticles = getArticlesByCategory("Games");
+  const esportsArticles = getArticlesByCategory("Esports");
+  const cultureArticles = getArticlesByCategory("Culture");
+
   return (
     <PageTransition>
     <div className="min-h-screen bg-background">
@@ -27,21 +34,19 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
               {/* First large article */}
               <div className="md:row-span-2 border-r-0 md:border-r border-border">
-                <ArticleCard {...articles[0]} size="large" />
+                <ArticleCard {...latestArticles[0]} size="large" />
               </div>
               {/* Two stacked on right */}
-              <ArticleCard {...articles[1]} size="medium" />
-              <ArticleCard {...articles[2]} size="medium" />
+              <ArticleCard {...latestArticles[1]} size="medium" />
+              <ArticleCard {...latestArticles[2]} size="medium" />
             </div>
 
             {/* Second row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-0">
-              {articles.slice(3).map((article, i) => (
-                <ArticleCard key={i} {...article} size="small" />
+              {latestArticles.slice(3).map((article) => (
+                <ArticleCard key={article.id} {...article} size="small" />
               ))}
             </div>
-
-            <Pagination />
           </div>
 
           {/* Sidebar */}
@@ -68,6 +73,14 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        {/* Category Sections */}
+        <SectionBlock title="GAMES" articles={gamesArticles} />
+        <SectionBlock title="ANIME" articles={animeArticles} />
+        <SectionBlock title="ESPORTS" articles={esportsArticles} />
+        <SectionBlock title="CULTURE & FILM" articles={[...cultureArticles, ...articles.filter(a => a.category === "Film")]} />
+
+        <Pagination />
       </main>
 
       <CategoryBar />
