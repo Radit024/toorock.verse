@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems = ["Artikel", "Review", "Anime", "Games", "Esports"];
 
