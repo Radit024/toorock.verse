@@ -222,6 +222,7 @@ const ArticlePage = () => {
         </div>
       </footer>
     </div>
+    </PageTransition>
   );
 };
 
