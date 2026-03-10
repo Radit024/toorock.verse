@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
+import PageTransition from "@/components/PageTransition";
 import CategoryBar from "@/components/CategoryBar";
 import LiveScorePanel from "@/components/LiveScorePanel";
 import Pagination from "@/components/Pagination";
