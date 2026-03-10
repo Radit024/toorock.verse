@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
 import ArticlePage from "./pages/ArticlePage.tsx";
+import CategoryPage from "./pages/CategoryPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -18,6 +19,7 @@ const AnimatedRoutes = () => {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Index />} />
         <Route path="/article/:id" element={<ArticlePage />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>

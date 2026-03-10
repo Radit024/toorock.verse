@@ -75,10 +75,10 @@ const Index = () => {
         </div>
 
         {/* Category Sections */}
-        <SectionBlock title="GAMES" articles={gamesArticles} />
-        <SectionBlock title="ANIME" articles={animeArticles} />
-        <SectionBlock title="ESPORTS" articles={esportsArticles} />
-        <SectionBlock title="CULTURE & FILM" articles={[...cultureArticles, ...articles.filter(a => a.category === "Film")]} />
+        <SectionBlock title="GAMES" category="Games" articles={gamesArticles} />
+        <SectionBlock title="ANIME" category="Anime" articles={animeArticles} />
+        <SectionBlock title="ESPORTS" category="Esports" articles={esportsArticles} />
+        <SectionBlock title="CULTURE & FILM" category="Culture" articles={[...cultureArticles, ...articles.filter(a => a.category === "Film")]} />
 
         <Pagination />
       </main>
