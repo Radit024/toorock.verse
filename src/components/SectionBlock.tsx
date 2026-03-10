@@ -9,7 +9,7 @@ interface SectionBlockProps {
   articles: Article[];
 }
 
-const SectionBlock = ({ title, articles, viewAllHref = "/" }: SectionBlockProps) => {
+const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
   if (articles.length === 0) return null;
 
   return (
