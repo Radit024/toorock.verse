@@ -18,7 +18,7 @@ const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
         <h2 className="font-heading text-2xl text-foreground tracking-widest">{title}</h2>
         <div className="flex-1 h-px bg-border" />
         <Link
-          to={viewAllHref}
+          to={`/category/${encodeURIComponent(category)}`}
           className="flex items-center gap-1 font-meta text-[10px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors group"
         >
           View All
