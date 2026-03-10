@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems = ["Artikel", "Review", "Anime", "Games", "Esports"];
 
@@ -30,6 +31,7 @@ const Navbar = () => {
               className="bg-secondary border border-border pl-8 pr-3 py-1.5 text-xs font-meta text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary w-48"
             />
           </div>
+          <ThemeToggle />
         </div>
       </div>
     </nav>
