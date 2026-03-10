@@ -8,6 +8,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
 import ArticlePage from "./pages/ArticlePage.tsx";
 import CategoryPage from "./pages/CategoryPage.tsx";
+import AdminDashboard from "./pages/AdminDashboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
