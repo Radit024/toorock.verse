@@ -37,6 +37,7 @@ const ArticlePage = () => {
   const related = [...relatedArticles, ...otherArticles];
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <Navbar />
       <TickerBar />
