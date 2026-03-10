@@ -3,6 +3,7 @@ import { ArrowLeft, Clock, Calendar, Share2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
+import PageTransition from "@/components/PageTransition";
 import { articles } from "@/data/articles";
 
 const ArticlePage = () => {
@@ -36,6 +37,7 @@ const ArticlePage = () => {
   const related = [...relatedArticles, ...otherArticles];
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <Navbar />
       <TickerBar />
@@ -220,6 +222,7 @@ const ArticlePage = () => {
         </div>
       </footer>
     </div>
+    </PageTransition>
   );
 };
 

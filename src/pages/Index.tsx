@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
+import PageTransition from "@/components/PageTransition";
 import CategoryBar from "@/components/CategoryBar";
 import LiveScorePanel from "@/components/LiveScorePanel";
 import Pagination from "@/components/Pagination";
@@ -8,6 +9,7 @@ import { articles } from "@/data/articles";
 
 const Index = () => {
   return (
+    <PageTransition>
     <div className="min-h-screen bg-background">
       <Navbar />
       <TickerBar />
@@ -87,6 +89,7 @@ const Index = () => {
         </div>
       </footer>
     </div>
+    </PageTransition>
   );
 };
 
