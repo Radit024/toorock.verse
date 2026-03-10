@@ -5,8 +5,8 @@ import type { Article } from "@/data/articles";
 
 interface SectionBlockProps {
   title: string;
+  category: string;
   articles: Article[];
-  viewAllHref?: string;
 }
 
 const SectionBlock = ({ title, articles, viewAllHref = "/" }: SectionBlockProps) => {
