@@ -56,7 +56,7 @@ const AdminLogin = () => {
             <div className="text-center mb-10">
               <Link to="/" className="inline-block">
                 <h1 className="font-heading text-4xl text-primary tracking-widest mb-1">
-                  TooRock Verse
+                  ToRock Verse
                 </h1>
               </Link>
               <p className="font-meta text-[10px] uppercase tracking-widest text-muted-foreground">

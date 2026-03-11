@@ -51,15 +51,15 @@ const ArticlePage = () => {
 
   const description = article.content[0]
     ? article.content[0].slice(0, 155) + (article.content[0].length > 155 ? "..." : "")
-    : `${article.category} news from TooRock Verse.`;
-  const canonicalUrl = `https://toorock.verse/article/${article.id}`;
+    : `${article.category} news from ToRock Verse.`;
+  const canonicalUrl = `https://ToRock.verse/article/${article.id}`;
 
   return (
     <PageTransition>
     <Helmet>
-      <title>{article.title} — TooRock Verse</title>
+      <title>{article.title} — ToRock Verse</title>
       <meta name="description" content={description} />
-      <meta name="keywords" content={`${article.category}, anime, games, esports, TooRock Verse, ${article.title}`} />
+      <meta name="keywords" content={`${article.category}, anime, games, esports, ToRock Verse, ${article.title}`} />
       <meta property="og:title" content={article.title} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content="article" />
@@ -79,7 +79,7 @@ const ArticlePage = () => {
         "image": article.image ? [article.image] : [],
         "articleSection": article.category,
         "author": { "@type": "Person", "name": article.author.name },
-        "publisher": { "@type": "Organization", "name": "TooRock Verse", "url": "https://toorock.verse/" },
+        "publisher": { "@type": "Organization", "name": "ToRock Verse", "url": "https://ToRock.verse/" },
         "url": canonicalUrl,
         "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl }
       })}</script>
@@ -90,7 +90,7 @@ const ArticlePage = () => {
 
       <main className="container py-6">
         <div className="flex items-center gap-2 mb-6 font-meta text-[10px] uppercase tracking-wider">
-          <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">TooRock Verse</Link>
+          <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">ToRock Verse</Link>
           <span className="text-muted-foreground">/</span>
           <span className="text-muted-foreground">{article.category}</span>
           <span className="text-muted-foreground">/</span>
@@ -189,7 +189,7 @@ const ArticlePage = () => {
                   </div>
                 </div>
                 <p className="font-body text-xs text-muted-foreground leading-relaxed">
-                  Covering the latest in {article.category.toLowerCase()} culture, industry news, and community developments for TooRock Verse//.
+                  {article.author.bio || `Covering the latest in ${article.category.toLowerCase()} culture, industry news, and community developments for ToRock Verse//.`}
                 </p>
               </div>
             </div>
@@ -220,10 +220,10 @@ const ArticlePage = () => {
         <div className="container py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="font-heading text-2xl text-primary tracking-widest">TooRock Verse</h2>
+              <h2 className="font-heading text-2xl text-primary tracking-widest">ToRock Verse</h2>
               <p className="font-meta text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Games & Anime Intelligence Archive</p>
             </div>
-            <p className="font-meta text-[10px] text-muted-foreground">© 2026 TooRock Verse. ALL RIGHTS RESERVED.</p>
+            <p className="font-meta text-[10px] text-muted-foreground">© 2026 ToRock Verse. ALL RIGHTS RESERVED.</p>
           </div>
         </div>
       </footer>

@@ -14,8 +14,8 @@ const NotFound = () => {
   return (
     <PageTransition>
       <Helmet>
-        <title>404 — Page Not Found — TooRock Verse</title>
-        <meta name="description" content="The page you are looking for doesn't exist. Return to TooRock Verse for the latest anime, games, and esports news." />
+        <title>404 — Page Not Found — ToRock Verse</title>
+        <meta name="description" content="The page you are looking for doesn't exist. Return to ToRock Verse for the latest anime, games, and esports news." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="min-h-screen bg-background">

@@ -10,6 +10,7 @@ export interface DbArticle {
   author_name: string;
   author_role: string;
   author_avatar: string;
+  author_bio: string;
   read_time: string;
   is_breaking: boolean;
   content: string[];
@@ -86,7 +87,7 @@ export const dbToArticle = (db: DbArticle): Article => ({
   category: db.category,
   date: formatRelativeDate(db.created_at),
   isBreaking: db.is_breaking,
-  author: { name: db.author_name, role: db.author_role, avatar: db.author_avatar },
+  author: { name: db.author_name, role: db.author_role, avatar: db.author_avatar, bio: db.author_bio },
   readTime: db.read_time,
   content: db.content,
 });

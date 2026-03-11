@@ -50,13 +50,13 @@ const Index = () => {
   return (
     <PageTransition>
     <Helmet>
-      <title>TooRock Verse — Anime, Games, Esports &amp; Culture News</title>
-      <meta name="description" content="TooRock Verse is your ultimate source for the latest anime, games, esports, films, and pop-culture news. Breaking coverage, reviews, and live scores." />
-      <meta property="og:title" content="TooRock Verse — Anime, Games, Esports & Culture News" />
+      <title>ToRock Verse — Anime, Games, Esports &amp; Culture News</title>
+      <meta name="description" content="ToRock Verse is your ultimate source for the latest anime, games, esports, films, and pop-culture news. Breaking coverage, reviews, and live scores." />
+      <meta property="og:title" content="ToRock Verse — Anime, Games, Esports & Culture News" />
       <meta property="og:description" content="Your ultimate source for anime, games, esports, films, and pop-culture news." />
       <meta property="og:type" content="website" />
-      <meta property="og:url" content="https://toorock.verse/" />
-      <link rel="canonical" href="https://toorock.verse/" />
+      <meta property="og:url" content="https://ToRock.verse/" />
+      <link rel="canonical" href="https://ToRock.verse/" />
     </Helmet>
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
@@ -214,13 +214,13 @@ const Index = () => {
         <div className="container py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="font-heading text-2xl text-primary tracking-widest">TooRock Verse</h2>
+              <h2 className="font-heading text-2xl text-primary tracking-widest">ToRock Verse</h2>
               <p className="font-meta text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
                 Games & Anime Intelligence Archive
               </p>
             </div>
             <p className="font-meta text-[10px] text-muted-foreground">
-              © 2026 TooRock Verse. ALL RIGHTS RESERVED.
+              © 2026 ToRock Verse. ALL RIGHTS RESERVED.
             </p>
           </div>
         </div>

@@ -91,7 +91,7 @@ const Navbar = () => {
             <MobileDrawer />
             <Link to="/" className="flex flex-col leading-none group">
               <span className="font-heading text-[1.75rem] text-primary tracking-widest group-hover:opacity-80 transition-opacity">
-                TooRock Verse
+                ToRock Verse
               </span>
               <span className="font-meta text-[8px] uppercase tracking-[0.2em] text-muted-foreground -mt-0.5">
                 Games &amp; Anime Intelligence

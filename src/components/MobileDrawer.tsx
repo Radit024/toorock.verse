@@ -22,7 +22,7 @@ const MobileDrawer = () => {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 bg-background border-r border-border p-0">
         <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-          <h2 className="font-heading text-2xl text-primary tracking-widest">TooRock Verse</h2>
+          <h2 className="font-heading text-2xl text-primary tracking-widest">ToRock Verse</h2>
         </div>
 
         {/* Search */}
@@ -57,7 +57,7 @@ const MobileDrawer = () => {
 
         <div className="absolute bottom-0 left-0 right-0 px-4 py-4 border-t border-border">
           <p className="font-meta text-[10px] text-muted-foreground uppercase">
-            © 2026 TooRock Verse
+            © 2026 ToRock Verse
           </p>
         </div>
       </SheetContent>

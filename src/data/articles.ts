@@ -20,7 +20,7 @@ export interface Article {
   category: string;
   date: string;
   isBreaking?: boolean;
-  author: { name: string; role: string; avatar: string };
+  author: { name: string; role: string; avatar: string; bio?: string };
   readTime: string;
   content: string[];
 }

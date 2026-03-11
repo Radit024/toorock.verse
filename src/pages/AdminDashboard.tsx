@@ -5,7 +5,7 @@ import {
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
   ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
-  Heading1, Heading2, Quote, Pilcrow,
+  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -40,13 +40,14 @@ const emptyForm = {
   author_name: "",
   author_role: "Editor",
   author_avatar: "",
+  author_bio: "",
   read_time: "3 min read",
   is_breaking: false,
   content: [""],
   published: false,
 };
 
-type View = "overview" | "articles" | "form";
+type View = "overview" | "articles" | "form" | "profile";
 type SortField = "created_at" | "title" | "category";
 type SortDir = "asc" | "desc";
 
@@ -124,6 +125,37 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [page, setPage] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
   const [blocks, setBlocks] = useState<ContentBlock[]>([{ id: crypto.randomUUID(), type: "text", value: "" }]);
+
+  // profile
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [profile, setProfile] = useState({ name: "", role: "Editor", avatar: "", bio: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      setUserEmail(data.user.email ?? "");
+      const m = data.user.user_metadata ?? {};
+      setProfile({
+        name: m.name ?? "",
+        role: m.role ?? "Editor",
+        avatar: m.avatar ?? "",
+        bio: m.bio ?? "",
+      });
+    });
+  }, []);
+
+  const saveProfile = async () => {
+    setProfileSaving(true);
+    const { error } = await supabase.auth.updateUser({ data: profile });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Profile saved" });
+    }
+    setProfileSaving(false);
+  };
 
   // list filters
   const [menuOpen, setMenuOpen] = useState(false);
@@ -234,7 +266,13 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     if (view === "form" && isDirty) {
       if (!confirm("You have unsaved changes. Start a new article anyway?")) return;
     }
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      author_name: profile.name,
+      author_role: profile.role,
+      author_avatar: profile.avatar,
+      author_bio: profile.bio,
+    });
     setBlocks([{ id: crypto.randomUUID(), type: "text", value: "" }]);
     setEditingId(null);
     setIsDirty(false);
@@ -253,6 +291,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       author_name: article.author_name,
       author_role: article.author_role,
       author_avatar: article.author_avatar,
+      author_bio: article.author_bio ?? "",
       read_time: article.read_time,
       is_breaking: article.is_breaking,
       content: article.content.length > 0 ? article.content : [""],
@@ -276,6 +315,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       author_name: article.author_name,
       author_role: article.author_role,
       author_avatar: article.author_avatar,
+      author_bio: article.author_bio ?? "",
       read_time: article.read_time,
       is_breaking: false,
       content: [...article.content],
@@ -499,10 +539,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                 </p>
                 <div className="border border-border p-4 space-y-1 bg-secondary/30">
                   <p className="font-meta text-[10px] text-green-600 dark:text-green-400">
-                    toorock.verse/article/{form.slug || "article-slug"}
+                    ToRock.verse/article/{form.slug || "article-slug"}
                   </p>
                   <p className="font-body text-sm text-blue-400 hover:underline cursor-pointer">
-                    {form.title || "Article Title — TooRock Verse"}
+                    {form.title || "Article Title — ToRock Verse"}
                   </p>
                   <p className="font-body text-xs text-muted-foreground line-clamp-2">
                     {blocks.find((b) => b.type === "text" && b.value.trim())?.value || "Article description preview will appear here based on your first paragraph..."}
@@ -540,7 +580,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               {/* Drawer header */}
               <div className="flex items-center justify-between px-5 h-14 border-b border-border shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-heading text-2xl text-primary tracking-widest">TooRock</span>
+                  <span className="font-heading text-2xl text-primary tracking-widest">ToRock</span>
                   <span className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground border border-border px-1.5 py-0.5">ADMIN</span>
                 </div>
                 <button
@@ -598,6 +638,26 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                   <ArrowLeft className="h-4 w-4 shrink-0" />
                   Back to site
                 </Link>
+
+                <div className="border-t border-border mt-3 pt-3 mx-5">
+                  <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground mb-2">Account</p>
+                </div>
+                <button
+                  onClick={() => { switchView("profile"); setMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider transition-colors ${
+                    view === "profile" ? "text-primary bg-primary/8 border-r-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <UserCircle2 className="h-4 w-4 shrink-0" />
+                  Profile
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onLogout(); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider text-muted-foreground hover:text-destructive hover:bg-secondary/60 transition-colors"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  Sign out
+                </button>
               </div>
 
               {/* Drawer footer */}
@@ -625,7 +685,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <Link to="/" className="font-heading text-xl sm:text-3xl text-primary tracking-widest truncate">TooRock Verse</Link>
+              <Link to="/" className="font-heading text-xl sm:text-3xl text-primary tracking-widest truncate">ToRock Verse</Link>
               <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground border border-border px-2 py-0.5 shrink-0">ADMIN</span>
               {isDirty && view === "form" && (
                 <span className="font-meta text-[10px] uppercase tracking-wider text-primary animate-pulse shrink-0 hidden sm:inline">&#9679; Unsaved</span>
@@ -645,13 +705,42 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               <Link to="/" className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">
                 <ArrowLeft className="h-3.5 w-3.5" /><span>Back to site</span>
               </Link>
-              <button
-                onClick={onLogout}
-                className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors"
-                title="Sign out"
-              >
-                Sign out
-              </button>
+              {/* Profile dropdown */}
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setProfileOpen((v) => !v)}
+                  className="flex items-center gap-2 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors border border-border px-2.5 py-1.5"
+                >
+                  <div className="w-5 h-5 bg-primary flex items-center justify-center font-heading text-[10px] text-primary-foreground">
+                    {profile.avatar || <User className="h-3 w-3" />}
+                  </div>
+                  <span className="max-w-[80px] truncate">{profile.name || userEmail.split("@")[0] || "Admin"}</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {profileOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border shadow-lg z-50">
+                      <div className="px-4 py-3 border-b border-border">
+                        <p className="font-body text-sm text-foreground truncate">{profile.name || "Admin"}</p>
+                        <p className="font-meta text-[10px] text-muted-foreground truncate">{userEmail}</p>
+                      </div>
+                      <button
+                        onClick={() => { setProfileOpen(false); switchView("profile"); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-colors"
+                      >
+                        <UserCircle2 className="h-3.5 w-3.5" /> Profile
+                      </button>
+                      <button
+                        onClick={() => { setProfileOpen(false); onLogout(); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive hover:bg-secondary/60 transition-colors"
+                      >
+                        <LogOut className="h-3.5 w-3.5" /> Sign out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -663,6 +752,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               ["overview", BarChart3, "Overview", activityLog.length > 0 ? String(activityLog.length) : null],
               ["articles", FileText, "Articles", articles.length > 0 ? String(articles.length) : null],
               ["form", Plus, editingId ? "Edit Article" : "New Article", null],
+              ["profile", UserCircle2, "Profile", null],
             ] as const).map(([v, Icon, label, badge]) => (
               <button
                 key={v}
@@ -1257,6 +1347,16 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                           />
                         </div>
                       </div>
+                      <div>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Bio <span className="normal-case tracking-normal">(shown on article page)</span></label>
+                        <textarea
+                          value={form.author_bio}
+                          onChange={(e) => { setForm({ ...form, author_bio: e.target.value }); markDirty(); }}
+                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
+                          rows={3}
+                          placeholder="Short author bio..."
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1467,10 +1567,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                     <div className="p-4">
                       <div className="bg-secondary/40 border border-border p-4 space-y-1.5">
                         <p className="font-meta text-[10px] text-green-600 dark:text-green-400 truncate">
-                          toorock.verse/article/{form.slug || "article-slug"}
+                          ToRock.verse/article/{form.slug || "article-slug"}
                         </p>
                         <p className="font-body text-sm text-blue-400 line-clamp-1">
-                          {form.title || "Article Title — TooRock Verse"}
+                          {form.title || "Article Title — ToRock Verse"}
                         </p>
                         <p className="font-body text-xs text-muted-foreground line-clamp-2">
                           {blocks.find((b) => b.type === "text" && b.value.trim())?.value || "Article preview text will appear here based on your first paragraph..."}
@@ -1508,6 +1608,95 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                 >
                   Cancel
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── PROFILE VIEW ── */}
+          {view === "profile" && (
+            <div className="container py-8 max-w-lg">
+              <div className="border border-border">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+                  <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="font-heading text-lg tracking-widest text-foreground">ADMIN PROFILE</h2>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  {/* Email (read-only) */}
+                  <div>
+                    <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Email (account)</label>
+                    <div className="w-full bg-secondary/40 border border-border px-3 py-2.5 font-body text-sm text-muted-foreground">
+                      {userEmail || "—"}
+                    </div>
+                  </div>
+
+                  {/* Avatar preview */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-primary border border-border flex items-center justify-center font-heading text-xl text-primary-foreground shrink-0">
+                      {profile.avatar || <User className="h-6 w-6" />}
+                    </div>
+                    <div>
+                      <p className="font-body text-sm text-foreground">{profile.name || "—"}</p>
+                      <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">{profile.role}</p>
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Display Name</label>
+                    <input
+                      value={profile.name}
+                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                      className="w-full bg-background border border-border px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                      placeholder="Full name..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Role */}
+                    <div>
+                      <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Role / Title</label>
+                      <input
+                        value={profile.role}
+                        onChange={(e) => setProfile({ ...profile, role: e.target.value })}
+                        className="w-full bg-background border border-border px-3 py-2.5 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                        placeholder="Editor"
+                      />
+                    </div>
+                    {/* Initials */}
+                    <div>
+                      <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Initials (2 chars)</label>
+                      <input
+                        value={profile.avatar}
+                        onChange={(e) => setProfile({ ...profile, avatar: e.target.value.toUpperCase().slice(0, 2) })}
+                        className="w-full bg-background border border-border px-3 py-2.5 font-heading text-lg text-foreground focus:outline-none focus:border-primary text-center"
+                        maxLength={2}
+                        placeholder="AB"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div>
+                    <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Bio <span className="normal-case tracking-normal">(shown on article pages)</span></label>
+                    <textarea
+                      value={profile.bio}
+                      onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                      className="w-full bg-background border border-border px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
+                      rows={4}
+                      placeholder="Short bio about this author..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-1">
+                    <Button onClick={saveProfile} disabled={profileSaving} className="font-meta text-xs uppercase tracking-wider h-10 flex-1">
+                      {profileSaving ? "Saving..." : "Save Profile"}
+                    </Button>
+                    <Button variant="outline" onClick={() => onLogout()} className="font-meta text-xs uppercase tracking-wider h-10 flex items-center gap-2">
+                      <LogOut className="h-3.5 w-3.5" /> Sign out
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
