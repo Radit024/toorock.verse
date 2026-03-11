@@ -13,7 +13,7 @@ const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
   if (articles.length === 0) return null;
 
   return (
-    <section className="py-8 border-t border-border">
+    <section className="py-8 mt-4 border-t border-border">
       <div className="flex items-center gap-3 mb-4">
         <h2 className="font-heading text-2xl text-foreground tracking-widest">{title}</h2>
         <div className="flex-1 h-px bg-border" />
@@ -26,7 +26,7 @@ const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {articles.slice(0, 4).map((article) => (
           <ArticleCard key={article.id} {...article} size="small" />
         ))}

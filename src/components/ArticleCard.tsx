@@ -13,7 +13,7 @@ interface ArticleCardProps {
 const ArticleCard = ({ id, image, title, category, date, isBreaking, size = "medium" }: ArticleCardProps) => {
   return (
     <Link to={`/article/${id}`}>
-      <article className={`article-card border border-border group cursor-pointer ${
+      <article className={`article-card border border-border group cursor-pointer h-full flex flex-col ${
         size === "large" ? "row-span-2" : ""
       }`}>
         <div className="relative overflow-hidden">
