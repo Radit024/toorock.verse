@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowLeft, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import PageTransition from "@/components/PageTransition";
+import ImageUpload from "@/components/ImageUpload";
 import {
   fetchAllArticles,
   createArticle,
@@ -273,16 +274,11 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Image URL */}
-                <div>
-                  <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Image URL</label>
-                  <input
-                    value={form.image_url}
-                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                    className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                    placeholder="https://..."
-                  />
-                </div>
+                {/* Image upload */}
+                <ImageUpload
+                  value={form.image_url}
+                  onChange={(url) => setForm({ ...form, image_url: url })}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Author name */}
