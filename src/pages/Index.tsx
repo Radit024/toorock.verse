@@ -94,6 +94,9 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Browse by Category */}
+          <CategoryBar />
+
           {/* Category Sections */}
           <SectionBlock title="GAMES" category="Games" articles={gamesArticles} />
           <SectionBlock title="ANIME" category="Anime" articles={animeArticles} />
@@ -104,7 +107,6 @@ const Index = () => {
         </main>
       </PullToRefresh>
 
-      <CategoryBar />
       <BottomNav />
 
       {/* Footer */}

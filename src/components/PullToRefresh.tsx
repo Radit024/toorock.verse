@@ -53,7 +53,7 @@ const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="md:hidden relative"
+      className="relative"
     >
       {/* Pull indicator */}
       <div
