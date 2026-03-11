@@ -1,73 +1,146 @@
-# Welcome to your Lovable project
+# ToRock Verse
 
-## Project info
+> Independent pop-culture intelligence — Games · Anime · Esports · Film
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+ToRock Verse is a modern, full-stack news & editorial platform covering the world of games, anime, esports, and film. Built with a terminal-brutalist aesthetic, it delivers breaking news, reviews, live scores, and curated articles in a fast, mobile-first experience.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+### Public
+- **Homepage** — Hero featured article, breaking news ticker, latest dispatches grid, and per-category section blocks (Games, Anime, Esports, Culture & Film)
+- **Article Page** — Full article reader with rich content blocks (text, headings, quotes, inline images), author bio, and related articles
+- **Category Page** — Filtered article listing by category with pagination
+- **Search Page** — Full-text search across all published articles
+- **Live Score Panel** — Real-time esports/gaming score widget
+- **Pull-to-Refresh** — Mobile native-feel content refresh
+- **Dark / Light theme** — Toggle with persistent preference
+- **Swipeable Cards** — Touch-friendly horizontal card carousel on mobile
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Admin Dashboard
+- **Secure login** — Supabase Auth (email + password)
+- **Article management** — Create, edit, duplicate, delete articles
+- **Block-based content editor** — Paragraph, Heading (H1), Subheading (H2), Quote, and Image blocks with reorder (move up/down) controls
+- **Image upload** — Cover image + inline content images via Supabase Storage (`article-images` bucket)
+- **Publish toggle** — Draft / Published state per article
+- **Breaking News flag** — Mark articles as breaking
+- **Category & read time** — Metadata per article
+- **Slug generation** — Auto-generate from title with manual override
+- **SEO preview** — Live preview of title/slug/meta
+- **Profile management** — Update name, role, avatar, and bio; auto-fills author info on new articles
+- **Realtime sync** — Supabase Realtime pushes article changes to the live frontend instantly
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## Tech Stack
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+| Layer | Technology |
+|---|---|
+| Framework | React 18 + TypeScript |
+| Build tool | Vite |
+| Styling | Tailwind CSS + custom fonts (Bebas Neue, IBM Plex Mono, Inter) |
+| UI Components | shadcn/ui (Radix UI primitives) |
+| Backend / DB | Supabase (PostgreSQL) |
+| Auth | Supabase Auth |
+| Storage | Supabase Storage |
+| Realtime | Supabase Realtime (`postgres_changes`) |
+| Routing | React Router v6 |
+| SEO | react-helmet-async + structured data (JSON-LD) |
+| Testing | Vitest + Playwright |
+| Deployment | Vercel |
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## Project Structure
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── pages/
+│   ├── Index.tsx           # Homepage
+│   ├── ArticlePage.tsx     # Single article reader
+│   ├── CategoryPage.tsx    # Category listing
+│   ├── SearchPage.tsx      # Search
+│   ├── AdminDashboard.tsx  # Full admin panel
+│   ├── AdminLogin.tsx      # Admin auth gate
+│   └── NotFound.tsx
+├── components/
+│   ├── ArticleCard.tsx     # Reusable card (large/medium/small)
+│   ├── SectionBlock.tsx    # Category section with swipeable mobile
+│   ├── Navbar.tsx          # Top navigation
+│   ├── BottomNav.tsx       # Mobile bottom nav
+│   ├── TickerBar.tsx       # Breaking news ticker
+│   ├── LiveScorePanel.tsx  # Score widget
+│   ├── ImageUpload.tsx     # Supabase Storage uploader
+│   └── ui/                 # shadcn/ui base components
+├── lib/
+│   ├── api.ts              # Supabase DB helpers (fetch, create, update, delete)
+│   └── utils.ts
+├── integrations/
+│   └── supabase/client.ts  # Supabase client init
+└── data/
+    └── articles.ts         # Fallback seed data + Article type
+supabase/
+└── migrations/             # SQL migration files
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Getting Started
 
-**Use GitHub Codespaces**
+### Prerequisites
+- Node.js ≥ 18
+- A [Supabase](https://supabase.com) project with the migrations applied
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Environment Variables
 
-## What technologies are used for this project?
+Create a `.env` file at the project root:
 
-This project is built with:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Install & Run
 
-## How can I deploy this project?
+```sh
+# Install dependencies
+npm install
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+# Start dev server
+npm run dev
 
-## Can I connect a custom domain to my Lovable project?
+# Build for production
+npm run build
 
-Yes, you can!
+# Preview production build
+npm run preview
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Database Setup
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Run the migration files in order via the Supabase SQL Editor:
+
+```
+supabase/migrations/20260310181920_...sql   — articles table + RLS
+supabase/migrations/20260311022736_...sql   — storage bucket + policies
+supabase/migrations/20260311120000_...sql   — secure write RLS
+supabase/migrations/20260311130000_...sql   — author_bio column
+```
+
+---
+
+## Deployment
+
+The project is configured for **Vercel** deployment via `vercel.json` (SPA rewrites included).
+
+1. Push to GitHub
+2. Import into Vercel
+3. Set environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`)
+4. Deploy
+
+---
+
+## License
+
+© 2026 ToRock Verse. All rights reserved.
