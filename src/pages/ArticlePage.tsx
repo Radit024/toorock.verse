@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Clock, Share2 } from "lucide-react";
+import { ArrowLeft, Clock, Share2, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
@@ -23,6 +23,20 @@ const ArticlePage = () => {
     };
     load();
   }, []);
+
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = { title: article?.title ?? "ToRock Verse", url };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const article = allArticles.find((a) => a.id === id);
 
@@ -125,8 +139,17 @@ const ArticlePage = () => {
                   <Clock className="h-3.5 w-3.5" />
                   <span className="font-meta text-[10px] uppercase tracking-wider">{article.readTime}</span>
                 </div>
-                <button className="p-2 border border-border hover:border-primary hover:text-primary text-muted-foreground transition-colors">
-                  <Share2 className="h-3.5 w-3.5" />
+                <button
+                  onClick={handleShare}
+                  className={`flex items-center gap-1.5 px-3 py-2 border transition-colors font-meta text-[10px] uppercase tracking-wider ${
+                    copied
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  }`}
+                  title="Share article"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                  {copied ? "Copied!" : "Share"}
                 </button>
               </div>
             </div>
