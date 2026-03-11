@@ -4,7 +4,7 @@ import {
   Plus, Pencil, Trash2, Eye, EyeOff, ArrowLeft, Zap,
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
-  ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft,
+  ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -71,6 +71,8 @@ const AdminDashboard = () => {
   const formRef = useRef<HTMLFormElement>(null);
 
   // list filters
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -449,34 +451,131 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ── HEADER ── */}
-        <div className="border-b border-border bg-background sticky top-0 z-40">
-          <div className="container flex items-center justify-between h-14">
-            <div className="flex items-center gap-4">
-              <Link to="/" className="font-heading text-3xl text-primary tracking-widest">TooRock Verse</Link>
-              <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground border border-border px-2 py-0.5">ADMIN</span>
+        {/* ── MOBILE DRAWER ── */}
+        {menuOpen && (
+          <div className="fixed inset-0 z-50 sm:hidden">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setMenuOpen(false)}
+            />
+            {/* Drawer panel */}
+            <div className="absolute top-0 left-0 bottom-0 w-72 bg-background border-r border-border flex flex-col">
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-5 h-14 border-b border-border shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-heading text-2xl text-primary tracking-widest">TooRock</span>
+                  <span className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground border border-border px-1.5 py-0.5">ADMIN</span>
+                </div>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Nav items */}
+              <div className="flex-1 py-3 overflow-y-auto">
+                <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground px-5 mb-2">Navigation</p>
+                {([
+                  ["overview", BarChart3, "Overview", activityLog.length > 0 ? String(activityLog.length) : null],
+                  ["articles", FileText, "Articles", articles.length > 0 ? String(articles.length) : null],
+                  ["form", Plus, editingId ? "Edit Article" : "New Article", null],
+                ] as const).map(([v, Icon, label, badge]) => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      if (v === "form") handleNew();
+                      else switchView(v as View);
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider transition-colors ${
+                      view === v
+                        ? "text-primary bg-primary/8 border-r-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 text-left">{label}</span>
+                    {badge && (
+                      <span className="font-meta text-[9px] bg-primary/15 text-primary px-1.5 py-0.5">{badge}</span>
+                    )}
+                  </button>
+                ))}
+
+                <div className="border-t border-border mt-3 pt-3 mx-5">
+                  <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground mb-2">Actions</p>
+                </div>
+                <button
+                  onClick={() => { loadArticles(true); setMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                >
+                  <RefreshCw className={`h-4 w-4 shrink-0 ${refreshing ? "animate-spin" : ""}`} />
+                  Refresh data
+                </button>
+                <Link
+                  to="/"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4 shrink-0" />
+                  Back to site
+                </Link>
+              </div>
+
+              {/* Drawer footer */}
               {isDirty && view === "form" && (
-                <span className="font-meta text-[10px] uppercase tracking-wider text-primary animate-pulse">&#9679; Unsaved</span>
+                <div className="border-t border-border px-5 py-3 shrink-0">
+                  <span className="font-meta text-[10px] uppercase tracking-wider text-primary animate-pulse flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                    Unsaved changes
+                  </span>
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
+          </div>
+        )}
+
+        {/* ── HEADER ── */}
+        <div className="border-b border-border bg-background sticky top-0 z-40">
+          <div className="container flex items-center justify-between h-14 gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              {/* Hamburger — mobile only */}
+              <button
+                onClick={() => setMenuOpen(true)}
+                className="sm:hidden p-2 -ml-2 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <Link to="/" className="font-heading text-xl sm:text-3xl text-primary tracking-widest truncate">TooRock Verse</Link>
+              <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground border border-border px-2 py-0.5 shrink-0">ADMIN</span>
+              {isDirty && view === "form" && (
+                <span className="font-meta text-[10px] uppercase tracking-wider text-primary animate-pulse shrink-0 hidden sm:inline">&#9679; Unsaved</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+              {isDirty && view === "form" && (
+                <span className="font-meta text-[10px] text-primary animate-pulse sm:hidden">&#9679;</span>
+              )}
               <button
                 onClick={() => loadArticles(true)}
-                className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:block"
                 title="Refresh"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               </button>
-              <Link to="/" className="flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">
-                <ArrowLeft className="h-3.5 w-3.5" /> Back to site
+              <Link to="/" className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">
+                <ArrowLeft className="h-3.5 w-3.5" /><span>Back to site</span>
               </Link>
             </div>
           </div>
         </div>
 
-        {/* ── NAV TABS ── */}
-        <div className="border-b border-border bg-background">
-          <div className="container flex gap-0">
+        {/* ── NAV TABS (desktop) ── */}
+        <div className="border-b border-border bg-background hidden sm:block">
+          <div className="container flex gap-0 overflow-x-auto scrollbar-none">
             {([
               ["overview", BarChart3, "Overview", activityLog.length > 0 ? String(activityLog.length) : null],
               ["articles", FileText, "Articles", articles.length > 0 ? String(articles.length) : null],
@@ -485,7 +584,7 @@ const AdminDashboard = () => {
               <button
                 key={v}
                 onClick={() => { if (v === "form") handleNew(); else switchView(v as View); }}
-                className={`flex items-center gap-2 px-4 py-3 font-meta text-xs uppercase tracking-wider border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-3 font-meta text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                   view === v ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -496,6 +595,20 @@ const AdminDashboard = () => {
                 )}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* ── ACTIVE VIEW BREADCRUMB (mobile) ── */}
+        <div className="sm:hidden border-b border-border bg-secondary/30">
+          <div className="container flex items-center gap-2 h-9">
+            {view === "overview" && <BarChart3 className="h-3.5 w-3.5 text-primary" />}
+            {view === "articles" && <FileText className="h-3.5 w-3.5 text-primary" />}
+            {view === "form" && <Plus className="h-3.5 w-3.5 text-primary" />}
+            <span className="font-meta text-[10px] uppercase tracking-wider text-primary">
+              {view === "overview" && "Overview"}
+              {view === "articles" && "Articles"}
+              {view === "form" && (editingId ? "Edit Article" : "New Article")}
+            </span>
           </div>
         </div>
 
@@ -661,14 +774,14 @@ const AdminDashboard = () => {
               </div>
 
               {/* Filters row */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
+                <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search articles..."
-                    className="bg-secondary border border-border pl-8 pr-8 py-1.5 text-xs font-meta text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary w-52"
+                    className="bg-secondary border border-border pl-8 pr-8 py-1.5 text-xs font-meta text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary w-full sm:w-52"
                   />
                   {searchQuery && (
                     <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -701,7 +814,7 @@ const AdminDashboard = () => {
 
               {/* Bulk actions */}
               {selected.size > 0 && (
-                <div className="flex items-center gap-3 px-4 py-2 border border-primary bg-primary/5">
+                <div className="flex flex-wrap items-center gap-3 px-4 py-2 border border-primary bg-primary/5">
                   <span className="font-meta text-xs uppercase tracking-wider text-primary">{selected.size} selected</span>
                   <button onClick={() => handleBulkPublish(true)} className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
                     <Eye className="h-3 w-3" /> Publish
@@ -754,65 +867,110 @@ const AdminDashboard = () => {
                       {paginated.map((article) => (
                         <div
                           key={article.id}
-                          className={`flex md:grid md:grid-cols-[24px_60px_1fr_90px_110px_80px_130px] gap-3 items-center px-4 py-3 hover:bg-secondary/50 transition-colors ${selected.has(article.id) ? "bg-primary/5" : ""}`}
+                          className={`hover:bg-secondary/50 transition-colors ${selected.has(article.id) ? "bg-primary/5" : ""}`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={selected.has(article.id)}
-                            onChange={() => toggleSelect(article.id)}
-                            className="accent-primary shrink-0"
-                          />
-                          {article.image_url ? (
-                            <img src={article.image_url} alt="" className="w-14 h-10 object-cover border border-border" />
-                          ) : (
-                            <div className="w-14 h-10 bg-muted border border-border flex items-center justify-center shrink-0">
-                              <span className="font-meta text-[7px] text-muted-foreground">NO IMG</span>
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-body text-sm text-foreground truncate">{article.title}</p>
-                            <span className="font-meta text-[9px] text-muted-foreground">/{article.slug}</span>
-                          </div>
-                          <span className="font-meta text-[10px] uppercase tracking-wider text-primary hidden md:block">{article.category}</span>
-
-                          {/* Inline publish toggle */}
-                          <div className="hidden md:flex items-center gap-2">
-                            <button
-                              onClick={() => handleTogglePublish(article)}
-                              className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${article.published ? "bg-green-500" : "bg-muted-foreground/30"}`}
-                              title={article.published ? "Unpublish" : "Publish"}
-                            >
-                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${article.published ? "translate-x-4" : "translate-x-0.5"}`} />
-                            </button>
-                            <div className="flex flex-col gap-0">
-                              <span className={`font-meta text-[9px] uppercase tracking-wider ${article.published ? "text-green-500" : "text-muted-foreground"}`}>
-                                {article.published ? "Live" : "Draft"}
-                              </span>
-                              {article.is_breaking && (
-                                <span className="font-meta text-[9px] uppercase tracking-wider text-primary">Breaking</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <span className="font-meta text-[9px] text-muted-foreground hidden md:block">
-                            {new Date(article.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
-                          </span>
-
-                          <div className="flex items-center gap-0.5 md:justify-end shrink-0">
-                            <button onClick={() => handleEdit(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Edit">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => handleDuplicate(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Duplicate">
-                              <Copy className="h-3.5 w-3.5" />
-                            </button>
-                            {article.published && (
-                              <Link to={`/article/${article.slug}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="View live">
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </Link>
+                          {/* ── Mobile card ── */}
+                          <div className="md:hidden flex items-start gap-3 px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selected.has(article.id)}
+                              onChange={() => toggleSelect(article.id)}
+                              className="accent-primary mt-1 shrink-0"
+                            />
+                            {article.image_url ? (
+                              <img src={article.image_url} alt="" className="w-16 h-12 object-cover border border-border shrink-0" />
+                            ) : (
+                              <div className="w-16 h-12 bg-muted border border-border flex items-center justify-center shrink-0">
+                                <span className="font-meta text-[7px] text-muted-foreground">NO IMG</span>
+                              </div>
                             )}
-                            <button onClick={() => handleDelete(article.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-body text-sm text-foreground leading-snug line-clamp-2">{article.title}</p>
+                              <span className="font-meta text-[9px] text-muted-foreground block truncate">/{article.slug}</span>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="font-meta text-[9px] uppercase tracking-wider text-primary">{article.category}</span>
+                                <button
+                                  onClick={() => handleTogglePublish(article)}
+                                  className={`font-meta text-[9px] uppercase tracking-wider ${article.published ? "text-green-500" : "text-muted-foreground"}`}
+                                >
+                                  {article.published ? "● Live" : "○ Draft"}
+                                </button>
+                                {article.is_breaking && (
+                                  <span className="font-meta text-[9px] uppercase tracking-wider text-primary border border-primary px-1">Breaking</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-0.5 shrink-0">
+                              <button onClick={() => handleEdit(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Edit">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              {article.published && (
+                                <Link to={`/article/${article.slug}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="View live">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Link>
+                              )}
+                              <button onClick={() => handleDelete(article.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* ── Desktop table row ── */}
+                          <div className="hidden md:grid grid-cols-[24px_60px_1fr_90px_110px_80px_130px] gap-3 items-center px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selected.has(article.id)}
+                              onChange={() => toggleSelect(article.id)}
+                              className="accent-primary shrink-0"
+                            />
+                            {article.image_url ? (
+                              <img src={article.image_url} alt="" className="w-14 h-10 object-cover border border-border" />
+                            ) : (
+                              <div className="w-14 h-10 bg-muted border border-border flex items-center justify-center shrink-0">
+                                <span className="font-meta text-[7px] text-muted-foreground">NO IMG</span>
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-body text-sm text-foreground truncate">{article.title}</p>
+                              <span className="font-meta text-[9px] text-muted-foreground">/{article.slug}</span>
+                            </div>
+                            <span className="font-meta text-[10px] uppercase tracking-wider text-primary">{article.category}</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleTogglePublish(article)}
+                                className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${article.published ? "bg-green-500" : "bg-muted-foreground/30"}`}
+                                title={article.published ? "Unpublish" : "Publish"}
+                              >
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${article.published ? "translate-x-4" : "translate-x-0.5"}`} />
+                              </button>
+                              <div className="flex flex-col gap-0">
+                                <span className={`font-meta text-[9px] uppercase tracking-wider ${article.published ? "text-green-500" : "text-muted-foreground"}`}>
+                                  {article.published ? "Live" : "Draft"}
+                                </span>
+                                {article.is_breaking && (
+                                  <span className="font-meta text-[9px] uppercase tracking-wider text-primary">Breaking</span>
+                                )}
+                              </div>
+                            </div>
+                            <span className="font-meta text-[9px] text-muted-foreground">
+                              {new Date(article.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
+                            </span>
+                            <div className="flex items-center gap-0.5 justify-end shrink-0">
+                              <button onClick={() => handleEdit(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Edit">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => handleDuplicate(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Duplicate">
+                                <Copy className="h-3.5 w-3.5" />
+                              </button>
+                              {article.published && (
+                                <Link to={`/article/${article.slug}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="View live">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Link>
+                              )}
+                              <button onClick={() => handleDelete(article.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -859,285 +1017,362 @@ const AdminDashboard = () => {
 
           {/* ── FORM ── */}
           {view === "form" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="font-heading text-3xl text-foreground tracking-widest">
+            <div className="space-y-5 pb-24 lg:pb-6">
+
+              {/* ── Form header ── */}
+              <div className="flex items-center justify-between gap-3 pb-4 border-b border-border">
+                <div className="min-w-0">
+                  <h1 className="font-heading text-2xl sm:text-3xl text-foreground tracking-widest truncate">
                     {editingId ? "EDIT ARTICLE" : "NEW ARTICLE"}
                   </h1>
-                  {editingId && (
-                    <p className="font-meta text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">ID: {editingId}</p>
-                  )}
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    {editingId && (
+                      <span className="font-meta text-[9px] text-muted-foreground uppercase tracking-wider border border-border px-1.5 py-0.5 truncate max-w-[180px]">
+                        {editingId}
+                      </span>
+                    )}
+                    <span className="font-meta text-[9px] border border-border px-1.5 py-0.5 uppercase tracking-wider text-muted-foreground hidden sm:inline">Ctrl+S</span>
+                    <span className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground hidden sm:inline">to save</span>
+                    {isDirty && (
+                      <span className="font-meta text-[9px] uppercase tracking-wider text-primary flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
+                        Unsaved
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => setPreviewOpen(true)}
-                    className="flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary border border-border hover:border-primary px-3 py-1.5 transition-colors"
+                    className="flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary border border-border hover:border-primary px-2.5 py-2 transition-colors"
                   >
-                    <Eye className="h-3.5 w-3.5" /> Preview
+                    <Eye className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Preview</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => switchView("articles")}
-                    className="font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                    className="flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground border border-border px-2.5 py-2 transition-colors"
                   >
-                    <X className="h-3.5 w-3.5" /> Cancel
+                    <X className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Cancel</span>
                   </button>
                 </div>
               </div>
 
-              {/* Shortcut hint */}
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <span className="font-meta text-[9px] border border-border px-1.5 py-0.5 uppercase tracking-wider">Ctrl+S</span>
-                <span className="font-meta text-[9px] uppercase tracking-wider">to save</span>
-                {isDirty && (
-                  <span className="font-meta text-[9px] uppercase tracking-wider text-primary">&#9679; Unsaved changes</span>
-                )}
-              </div>
+              <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
 
-              <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-                {/* Left column — main content */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Title *</label>
-                    <input
-                      value={form.title}
-                      onChange={(e) => handleTitleChange(e.target.value)}
-                      className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                      placeholder="Article title..."
-                    />
-                  </div>
+                {/* ── RIGHT COLUMN — sidebar metadata (comes first on mobile) ── */}
+                <div className="space-y-4 order-first lg:order-last">
 
-                  <div>
-                    <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">
-                      Slug * (auto-generated, URL-safe)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        value={form.slug}
-                        onChange={(e) => { setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }); markDirty(); }}
-                        className="flex-1 bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                        placeholder="article-slug"
+                  {/* Cover image */}
+                  <div className="border border-border">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Cover Image</span>
+                    </div>
+                    <div className="p-3">
+                      <ImageUpload
+                        value={form.image_url}
+                        onChange={(url) => { setForm({ ...form, image_url: url }); markDirty(); }}
                       />
-                      <button
-                        type="button"
-                        onClick={() => { setForm({ ...form, slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }); markDirty(); }}
-                        className="px-3 border border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors"
-                      >
-                        Regenerate
-                      </button>
                     </div>
                   </div>
 
-                  {/* Content paragraphs */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Content Paragraphs</label>
-                      <span className="font-meta text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <AlignLeft className="h-3 w-3" />
-                        {wordCount.total} words total
-                      </span>
+                  {/* Publish status — most prominent */}
+                  <div className="border border-border">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Publish Settings</span>
                     </div>
-                    <div className="space-y-2">
-                      {form.content.map((para, i) => (
-                        <div key={i} className="flex gap-2">
-                          {/* Reorder controls */}
-                          <div className="flex flex-col items-center gap-0.5 pt-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => moveParagraph(i, -1)}
-                              disabled={i === 0}
-                              className="text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors"
-                              title="Move up"
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </button>
-                            <span className="font-meta text-[9px] text-muted-foreground">{i + 1}</span>
-                            <button
-                              type="button"
-                              onClick={() => moveParagraph(i, 1)}
-                              disabled={i === form.content.length - 1}
-                              className="text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors"
-                              title="Move down"
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <div className="flex-1 relative">
-                            <textarea
-                              value={para}
-                              onChange={(e) => updateContent(i, e.target.value)}
-                              rows={3}
-                              className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-y"
-                              placeholder={`Paragraph ${i + 1}...`}
-                            />
-                            {wordCount.perPara[i] > 0 && (
-                              <span className="absolute bottom-1.5 right-2 font-meta text-[8px] text-muted-foreground pointer-events-none">
-                                {wordCount.perPara[i]}w
-                              </span>
-                            )}
-                          </div>
-                          {form.content.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeParagraph(i)}
-                              className="p-2 text-muted-foreground hover:text-destructive self-start shrink-0 mt-1"
-                              title="Remove paragraph"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
+                    <div className="divide-y divide-border">
+                      {/* Published toggle */}
+                      <div
+                        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors"
+                        onClick={() => { setForm((f) => ({ ...f, published: !f.published })); markDirty(); }}
+                      >
+                        <div>
+                          <p className="font-meta text-xs uppercase tracking-wider text-foreground">Published</p>
+                          <p className="font-meta text-[9px] text-muted-foreground mt-0.5">Visible on the site</p>
                         </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={addParagraph}
-                      className="mt-2 font-meta text-[10px] uppercase tracking-wider text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Plus className="h-3 w-3" /> Add paragraph
-                    </button>
-                  </div>
-
-                  {/* SEO / Search Preview */}
-                  <div className="border border-border p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                      <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">SEO / Search Preview</p>
-                    </div>
-                    <div className="bg-secondary/50 p-3 space-y-1">
-                      <p className="font-meta text-[10px] text-green-600 dark:text-green-400">
-                        toorock.verse/article/{form.slug || "article-slug"}
-                      </p>
-                      <p className="font-body text-sm text-blue-400 line-clamp-1">
-                        {form.title || "Article Title — TooRock Verse"}
-                      </p>
-                      <p className="font-body text-xs text-muted-foreground line-clamp-2">
-                        {form.content.find((p) => p.trim()) || "Article preview text..."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right column — metadata */}
-                <div className="space-y-4">
-                  <ImageUpload
-                    value={form.image_url}
-                    onChange={(url) => { setForm({ ...form, image_url: url }); markDirty(); }}
-                  />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Category</label>
-                      <select
-                        value={form.category}
-                        onChange={(e) => { setForm({ ...form, category: e.target.value }); markDirty(); }}
-                        className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${form.published ? "bg-green-500" : "bg-muted-foreground/30"}`}>
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.published ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </div>
+                      </div>
+                      {/* Breaking toggle */}
+                      <div
+                        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors"
+                        onClick={() => { setForm((f) => ({ ...f, is_breaking: !f.is_breaking })); markDirty(); }}
                       >
-                        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                        <div>
+                          <p className="font-meta text-xs uppercase tracking-wider text-foreground">Breaking News</p>
+                          <p className="font-meta text-[9px] text-muted-foreground mt-0.5">Shows red BREAKING badge</p>
+                        </div>
+                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${form.is_breaking ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.is_breaking ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Read Time</label>
-                      <input
-                        value={form.read_time}
-                        onChange={(e) => { setForm({ ...form, read_time: e.target.value }); markDirty(); }}
-                        className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                      />
+                  </div>
+
+                  {/* Category + Read time */}
+                  <div className="border border-border">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Categorisation</span>
+                    </div>
+                    <div className="p-4 grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Category</label>
+                        <select
+                          value={form.category}
+                          onChange={(e) => { setForm({ ...form, category: e.target.value }); markDirty(); }}
+                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                        >
+                          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Read Time</label>
+                        <input
+                          value={form.read_time}
+                          onChange={(e) => { setForm({ ...form, read_time: e.target.value }); markDirty(); }}
+                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Author */}
-                  <div className="border border-border p-3 space-y-3">
-                    <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Author Info</p>
-                    <div>
-                      <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Name</label>
-                      <input
-                        value={form.author_name}
-                        onChange={(e) => { setForm({ ...form, author_name: e.target.value }); markDirty(); }}
-                        className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                      />
+                  <div className="border border-border">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Author</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="p-4 space-y-3">
                       <div>
-                        <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Role</label>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Name</label>
                         <input
-                          value={form.author_role}
-                          onChange={(e) => { setForm({ ...form, author_role: e.target.value }); markDirty(); }}
-                          className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                          value={form.author_name}
+                          onChange={(e) => { setForm({ ...form, author_name: e.target.value }); markDirty(); }}
+                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                          placeholder="Full name..."
                         />
                       </div>
-                      <div>
-                        <label className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Initials</label>
-                        <input
-                          value={form.author_avatar}
-                          onChange={(e) => { setForm({ ...form, author_avatar: e.target.value.toUpperCase().slice(0, 2) }); markDirty(); }}
-                          className="w-full bg-secondary border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                          maxLength={2}
-                          placeholder="AB"
-                        />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Role</label>
+                          <input
+                            value={form.author_role}
+                            onChange={(e) => { setForm({ ...form, author_role: e.target.value }); markDirty(); }}
+                            className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Initials</label>
+                          <input
+                            value={form.author_avatar}
+                            onChange={(e) => { setForm({ ...form, author_avatar: e.target.value.toUpperCase().slice(0, 2) }); markDirty(); }}
+                            className="w-full bg-background border border-border px-3 py-2 font-heading text-lg text-foreground focus:outline-none focus:border-primary text-center"
+                            maxLength={2}
+                            placeholder="AB"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Flags */}
-                  <div className="border border-border p-3 space-y-2">
-                    <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Flags</p>
-                    <label className="flex items-center gap-2 cursor-pointer hover:bg-secondary -mx-3 px-3 py-1.5 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={form.is_breaking}
-                        onChange={(e) => { setForm({ ...form, is_breaking: e.target.checked }); markDirty(); }}
-                        className="accent-primary"
-                      />
-                      <div>
-                        <span className="font-meta text-xs uppercase tracking-wider text-foreground">Breaking News</span>
-                        <p className="font-meta text-[9px] text-muted-foreground">Shows red BREAKING badge</p>
+                  {/* Content stats — horizontal strip */}
+                  <div className="grid grid-cols-3 divide-x divide-border border border-border">
+                    {[
+                      { label: "Words", value: wordCount.total },
+                      { label: "Paras", value: form.content.filter((p) => p.trim()).length },
+                      { label: "Min Read", value: Math.max(1, Math.ceil(wordCount.total / 200)) },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="text-center py-3">
+                        <p className="font-heading text-xl text-foreground">{value}</p>
+                        <p className="font-meta text-[8px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
                       </div>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer hover:bg-secondary -mx-3 px-3 py-1.5 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={form.published}
-                        onChange={(e) => { setForm({ ...form, published: e.target.checked }); markDirty(); }}
-                        className="accent-primary"
-                      />
-                      <div>
-                        <span className="font-meta text-xs uppercase tracking-wider text-foreground">Published</span>
-                        <p className="font-meta text-[9px] text-muted-foreground">Visible on the site</p>
-                      </div>
-                    </label>
+                    ))}
                   </div>
 
-                  {/* Content stats */}
-                  <div className="border border-border p-3">
-                    <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Content Stats</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-center">
-                        <p className="font-heading text-2xl text-foreground">{wordCount.total}</p>
-                        <p className="font-meta text-[8px] uppercase tracking-wider text-muted-foreground">Words</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-heading text-2xl text-foreground">{form.content.filter((p) => p.trim()).length}</p>
-                        <p className="font-meta text-[8px] uppercase tracking-wider text-muted-foreground">Paras</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-heading text-2xl text-foreground">{Math.max(1, Math.ceil(wordCount.total / 200))}</p>
-                        <p className="font-meta text-[8px] uppercase tracking-wider text-muted-foreground">Min Read</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button type="submit" disabled={saving} className="flex-1 font-meta text-xs uppercase tracking-wider">
-                      {saving ? "Saving..." : editingId ? "Update Article" : "Create Article"}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => switchView("articles")} className="font-meta text-xs uppercase tracking-wider">
-                      Cancel
+                  {/* Save button — visible on desktop sidebar */}
+                  <div className="hidden lg:flex gap-2">
+                    <Button type="submit" disabled={saving} className="flex-1 font-meta text-xs uppercase tracking-wider h-10">
+                      {saving ? "Saving..." : editingId ? "Update Article" : "Publish / Save"}
                     </Button>
                   </div>
                 </div>
+
+                {/* ── LEFT COLUMN — main content ── */}
+                <div className="space-y-5">
+
+                  {/* Article details panel */}
+                  <div className="border border-border">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Article Details</span>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <div>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Title *</label>
+                        <input
+                          value={form.title}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                          className="w-full bg-background border border-border px-3 py-2.5 font-body text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                          placeholder="Article title..."
+                        />
+                      </div>
+                      <div>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">
+                          Slug * <span className="normal-case tracking-normal">(auto-generated, URL-safe)</span>
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            value={form.slug}
+                            onChange={(e) => { setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }); markDirty(); }}
+                            className="flex-1 min-w-0 bg-background border border-border px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                            placeholder="article-slug"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => { setForm({ ...form, slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }); markDirty(); }}
+                            className="shrink-0 px-3 py-2.5 border border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors"
+                          >
+                            Regen
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content paragraphs panel */}
+                  <div className="border border-border">
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Content</span>
+                      <span className="font-meta text-[9px] text-muted-foreground flex items-center gap-1">
+                        <AlignLeft className="h-3 w-3" /> {wordCount.total} words
+                      </span>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {form.content.map((item, i) => {
+                        const isImage = item.startsWith("http://") || item.startsWith("https://");
+                        return (
+                          <div key={i} className="border border-border hover:border-primary/40 transition-colors">
+                            {/* Item toolbar */}
+                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-secondary/30">
+                              <span className="font-meta text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                {isImage ? <ImageIcon className="h-3 w-3" /> : null}
+                                {isImage ? `Image ${i + 1}` : `§ ${i + 1}${wordCount.perPara[i] > 0 ? ` · ${wordCount.perPara[i]}w` : ""}`}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => moveParagraph(i, -1)}
+                                  disabled={i === 0}
+                                  className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors"
+                                  title="Move up"
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveParagraph(i, 1)}
+                                  disabled={i === form.content.length - 1}
+                                  className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors"
+                                  title="Move down"
+                                >
+                                  <ArrowDown className="h-3 w-3" />
+                                </button>
+                                {form.content.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeParagraph(i)}
+                                    className="p-1 text-muted-foreground hover:text-destructive transition-colors ml-1"
+                                    title="Remove"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {isImage ? (
+                              <div className="p-2 space-y-2">
+                                <img src={item} alt="" className="w-full h-32 object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                                <input
+                                  value={item}
+                                  onChange={(e) => updateContent(i, e.target.value)}
+                                  className="w-full bg-background border border-border px-3 py-2 font-body text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                                  placeholder="https://example.com/image.jpg"
+                                />
+                              </div>
+                            ) : (
+                              <textarea
+                                value={item}
+                                onChange={(e) => updateContent(i, e.target.value)}
+                                rows={4}
+                                className="w-full bg-background px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-y"
+                                placeholder={`Write paragraph ${i + 1}...`}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={addParagraph}
+                          className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add text
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setForm({ ...form, content: [...form.content, "https://"] }); markDirty(); }}
+                          className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5" /> Add image
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SEO preview panel */}
+                  <div className="border border-border">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Search Engine Preview</span>
+                    </div>
+                    <div className="p-4">
+                      <div className="bg-secondary/40 border border-border p-4 space-y-1.5">
+                        <p className="font-meta text-[10px] text-green-600 dark:text-green-400 truncate">
+                          toorock.verse/article/{form.slug || "article-slug"}
+                        </p>
+                        <p className="font-body text-sm text-blue-400 line-clamp-1">
+                          {form.title || "Article Title — TooRock Verse"}
+                        </p>
+                        <p className="font-body text-xs text-muted-foreground line-clamp-2">
+                          {form.content.find((p) => p.trim()) || "Article preview text will appear here based on your first paragraph..."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </form>
+
+              {/* ── Sticky save bar — mobile only ── */}
+              <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-background border-t border-border px-4 py-3 flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => formRef.current?.requestSubmit()}
+                  disabled={saving}
+                  className="flex-1 font-meta text-xs uppercase tracking-wider h-10"
+                >
+                  {saving ? "Saving..." : editingId ? "Update Article" : "Publish / Save"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => switchView("articles")}
+                  className="font-meta text-xs uppercase tracking-wider h-10 px-4"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
 

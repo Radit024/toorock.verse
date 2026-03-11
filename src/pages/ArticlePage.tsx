@@ -139,12 +139,26 @@ const ArticlePage = () => {
             </div>
 
             <div className="space-y-5 mb-12">
-              {article.content.map((paragraph, i) => (
-                <p key={i} className="font-body text-base text-foreground/90 leading-relaxed">
-                  {i === 0 && <span className="font-heading text-4xl text-primary float-left mr-2 mt-1 leading-none">{paragraph.charAt(0)}</span>}
-                  {i === 0 ? paragraph.slice(1) : paragraph}
-                </p>
-              ))}
+              {article.content.map((item, i) => {
+                const isImage = item.startsWith("http://") || item.startsWith("https://");
+                if (isImage) {
+                  return (
+                    <figure key={i} className="my-6">
+                      <img
+                        src={item}
+                        alt=""
+                        className="w-full object-cover border border-border"
+                      />
+                    </figure>
+                  );
+                }
+                return (
+                  <p key={i} className="font-body text-base text-foreground/90 leading-relaxed">
+                    {i === 0 && <span className="font-heading text-4xl text-primary float-left mr-2 mt-1 leading-none">{item.charAt(0)}</span>}
+                    {i === 0 ? item.slice(1) : item}
+                  </p>
+                );
+              })}
             </div>
 
             <div className="border-t border-border pt-4 mb-8">
