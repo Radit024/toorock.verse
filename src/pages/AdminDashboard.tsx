@@ -5,11 +5,13 @@ import {
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
   ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
+  Heading1, Heading2, Quote, Pilcrow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import PageTransition from "@/components/PageTransition";
 import ImageUpload from "@/components/ImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 import {
   fetchAllArticles,
   createArticle,
@@ -56,20 +58,51 @@ const ACTION_COLOR: Record<LogAction, string> = {
   duplicated: "text-primary",
 };
 
+type BlockType = "text" | "heading" | "subheading" | "quote" | "image";
+interface ContentBlock { id: string; type: BlockType; value: string; }
+
+function contentToBlocks(content: string[]): ContentBlock[] {
+  const items = content.filter((s) => s !== undefined);
+  if (items.length === 0) return [{ id: crypto.randomUUID(), type: "text", value: "" }];
+  return items.map((item) => {
+    const id = crypto.randomUUID();
+    if (item.startsWith("## ")) return { id, type: "heading" as BlockType, value: item.slice(3) };
+    if (item.startsWith("### ")) return { id, type: "subheading" as BlockType, value: item.slice(4) };
+    if (item.startsWith("> ")) return { id, type: "quote" as BlockType, value: item.slice(2) };
+    if (/^https?:\/\//.test(item)) return { id, type: "image" as BlockType, value: item };
+    return { id, type: "text" as BlockType, value: item };
+  });
+}
+
+function blocksToContent(blockList: ContentBlock[]): string[] {
+  return blockList.map((b) => {
+    if (b.type === "heading") return `## ${b.value}`;
+    if (b.type === "subheading") return `### ${b.value}`;
+    if (b.type === "quote") return `> ${b.value}`;
+    return b.value;
+  }).filter((s) => s.trim() !== "");
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const isAuthenticated = !!localStorage.getItem("adminToken");
+  const [checked, setChecked] = useState(false);
+  const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/admin/login", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        navigate("/admin/login", { replace: true });
+      } else {
+        setAuthed(true);
+      }
+      setChecked(true);
+    });
+  }, [navigate]);
 
-  if (!isAuthenticated) return null;
+  if (!checked || !authed) return null;
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/admin/login", { replace: true });
   };
 
@@ -89,6 +122,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [page, setPage] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
+  const [blocks, setBlocks] = useState<ContentBlock[]>([{ id: crypto.randomUUID(), type: "text", value: "" }]);
 
   // list filters
   const [menuOpen, setMenuOpen] = useState(false);
@@ -186,9 +220,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
 
   // Word count
   const wordCount = useMemo(() => {
-    const perPara = form.content.map((p) => (p.trim() ? p.trim().split(/\s+/).length : 0));
-    return { perPara, total: perPara.reduce((a, b) => a + b, 0) };
-  }, [form.content]);
+    const perBlock = blocks.map((b) =>
+      b.type !== "image" && b.value.trim() ? b.value.trim().split(/\s+/).length : 0
+    );
+    return { perBlock, total: perBlock.reduce((a, b) => a + b, 0) };
+  }, [blocks]);
 
   // --- Form handlers ---
   const handleNew = () => {
@@ -196,6 +232,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       if (!confirm("You have unsaved changes. Start a new article anyway?")) return;
     }
     setForm(emptyForm);
+    setBlocks([{ id: crypto.randomUUID(), type: "text", value: "" }]);
     setEditingId(null);
     setIsDirty(false);
     setView("form");
@@ -219,6 +256,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       published: article.published,
     });
     setEditingId(article.id);
+    setBlocks(contentToBlocks(article.content.length > 0 ? article.content : [""]));
     setIsDirty(false);
     setView("form");
   };
@@ -241,6 +279,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       published: false,
     });
     setEditingId(null);
+    setBlocks(contentToBlocks(article.content));
     setIsDirty(true);
     setView("form");
     toast({ title: "Duplicated", description: "Edit and save as a new article." });
@@ -307,7 +346,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       const payload = {
         ...form,
         image_url: form.image_url || null,
-        content: form.content.filter((p) => p.trim() !== ""),
+        content: blocksToContent(blocks),
       };
       if (editingId) {
         await updateArticle(editingId, payload);
@@ -333,27 +372,30 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     markDirty();
   };
 
-  const updateContent = (index: number, value: string) => {
-    const updated = [...form.content];
-    updated[index] = value;
-    setForm({ ...form, content: updated });
+  const updateBlock = (index: number, value: string) => {
+    const newBlocks = [...blocks];
+    newBlocks[index] = { ...newBlocks[index], value };
+    setBlocks(newBlocks);
     markDirty();
   };
 
-  const addParagraph = () => { setForm({ ...form, content: [...form.content, ""] }); markDirty(); };
-
-  const removeParagraph = (index: number) => {
-    if (form.content.length <= 1) return;
-    setForm({ ...form, content: form.content.filter((_, i) => i !== index) });
+  const addBlock = (type: BlockType) => {
+    setBlocks([...blocks, { id: crypto.randomUUID(), type, value: "" }]);
     markDirty();
   };
 
-  const moveParagraph = (index: number, dir: -1 | 1) => {
+  const removeBlock = (index: number) => {
+    if (blocks.length <= 1) return;
+    setBlocks(blocks.filter((_, i) => i !== index));
+    markDirty();
+  };
+
+  const moveBlock = (index: number, dir: -1 | 1) => {
     const newIndex = index + dir;
-    if (newIndex < 0 || newIndex >= form.content.length) return;
-    const updated = [...form.content];
-    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
-    setForm({ ...form, content: updated });
+    if (newIndex < 0 || newIndex >= blocks.length) return;
+    const newBlocks = [...blocks];
+    [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
+    setBlocks(newBlocks);
     markDirty();
   };
 
@@ -428,12 +470,23 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               </div>
 
               <div className="space-y-5">
-                {form.content.filter((p) => p.trim()).map((para, i) => (
-                  <p key={i} className="font-body text-base text-foreground leading-relaxed">{para}</p>
-                ))}
-                {form.content.filter((p) => p.trim()).length === 0 && (
+                {blocks.filter((b) => b.value.trim()).length === 0 ? (
                   <p className="font-body text-sm text-muted-foreground italic">No content yet...</p>
-                )}
+                ) : blocks.filter((b) => b.value.trim()).map((block) => {
+                  if (block.type === "image") return (
+                    <img key={block.id} src={block.value} alt="" className="w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  );
+                  if (block.type === "heading") return (
+                    <h2 key={block.id} className="font-heading text-3xl text-foreground tracking-widest leading-tight">{block.value}</h2>
+                  );
+                  if (block.type === "subheading") return (
+                    <h3 key={block.id} className="font-heading text-xl text-foreground tracking-widest leading-tight">{block.value}</h3>
+                  );
+                  if (block.type === "quote") return (
+                    <blockquote key={block.id} className="border-l-2 border-primary pl-4 font-body text-base text-muted-foreground italic leading-relaxed">{block.value}</blockquote>
+                  );
+                  return <p key={block.id} className="font-body text-base text-foreground leading-relaxed">{block.value}</p>;
+                })}
               </div>
 
               {/* SEO snippet preview */}
@@ -449,7 +502,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                     {form.title || "Article Title — TooRock Verse"}
                   </p>
                   <p className="font-body text-xs text-muted-foreground line-clamp-2">
-                    {form.content.find((p) => p.trim()) || "Article description preview will appear here based on your first paragraph..."}
+                    {blocks.find((b) => b.type === "text" && b.value.trim())?.value || "Article description preview will appear here based on your first paragraph..."}
                   </p>
                 </div>
               </div>
@@ -458,7 +511,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               <div className="mt-6 grid grid-cols-3 gap-4">
                 {[
                   { label: "Words", value: wordCount.total },
-                  { label: "Paragraphs", value: form.content.filter((p) => p.trim()).length },
+                  { label: "Blocks", value: blocks.filter((b) => b.value.trim()).length },
                   { label: "Est. Read", value: `${Math.max(1, Math.ceil(wordCount.total / 200))} min` },
                 ].map(({ label, value }) => (
                   <div key={label} className="border border-border p-3 text-center">
@@ -1208,7 +1261,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                   <div className="grid grid-cols-3 divide-x divide-border border border-border">
                     {[
                       { label: "Words", value: wordCount.total },
-                      { label: "Paras", value: form.content.filter((p) => p.trim()).length },
+                      { label: "Blocks", value: blocks.filter((b) => b.value.trim()).length },
                       { label: "Min Read", value: Math.max(1, Math.ceil(wordCount.total / 200)) },
                     ].map(({ label, value }) => (
                       <div key={label} className="text-center py-3">
@@ -1267,92 +1320,120 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                     </div>
                   </div>
 
-                  {/* Content paragraphs panel */}
+                  {/* Content block editor */}
                   <div className="border border-border">
                     <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-secondary/40">
                       <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Content</span>
-                      <span className="font-meta text-[9px] text-muted-foreground flex items-center gap-1">
-                        <AlignLeft className="h-3 w-3" /> {wordCount.total} words
+                      <span className="font-meta text-[9px] text-muted-foreground flex items-center gap-1.5">
+                        <AlignLeft className="h-3 w-3" /> {wordCount.total} words · {blocks.length} block{blocks.length !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    <div className="p-4 space-y-3">
-                      {form.content.map((item, i) => {
-                        const isImage = item.startsWith("http://") || item.startsWith("https://");
-                        return (
-                          <div key={i} className="border border-border hover:border-primary/40 transition-colors">
-                            {/* Item toolbar */}
-                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-secondary/30">
-                              <span className="font-meta text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                                {isImage ? <ImageIcon className="h-3 w-3" /> : null}
-                                {isImage ? `Image ${i + 1}` : `§ ${i + 1}${wordCount.perPara[i] > 0 ? ` · ${wordCount.perPara[i]}w` : ""}`}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => moveParagraph(i, -1)}
-                                  disabled={i === 0}
-                                  className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors"
-                                  title="Move up"
-                                >
-                                  <ArrowUp className="h-3 w-3" />
+                    <div className="p-4 space-y-2">
+                      {blocks.map((block, i) => (
+                        <div key={block.id} className="border border-border hover:border-primary/40 transition-colors">
+                          {/* Block toolbar */}
+                          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-secondary/20">
+                            <select
+                              value={block.type}
+                              onChange={(e) => {
+                                const newType = e.target.value as BlockType;
+                                const newBlocks = [...blocks];
+                                newBlocks[i] = { ...block, type: newType, value: newType === "image" ? "" : block.value };
+                                setBlocks(newBlocks);
+                                markDirty();
+                              }}
+                              className="bg-transparent font-meta text-[9px] uppercase tracking-wider text-muted-foreground hover:text-primary focus:outline-none cursor-pointer"
+                            >
+                              <option value="text">¶ Paragraph</option>
+                              <option value="heading">H1 Heading</option>
+                              <option value="subheading">H2 Subheading</option>
+                              <option value="quote">❝ Quote</option>
+                              <option value="image">⬛ Image</option>
+                            </select>
+                            <div className="flex items-center gap-0.5">
+                              {block.type !== "image" && wordCount.perBlock[i] > 0 && (
+                                <span className="font-meta text-[9px] text-muted-foreground mr-2">{wordCount.perBlock[i]}w</span>
+                              )}
+                              <button type="button" onClick={() => moveBlock(i, -1)} disabled={i === 0} className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" title="Move up">
+                                <ArrowUp className="h-3 w-3" />
+                              </button>
+                              <button type="button" onClick={() => moveBlock(i, 1)} disabled={i === blocks.length - 1} className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" title="Move down">
+                                <ArrowDown className="h-3 w-3" />
+                              </button>
+                              {blocks.length > 1 && (
+                                <button type="button" onClick={() => removeBlock(i)} className="p-1 text-muted-foreground hover:text-destructive transition-colors ml-1" title="Remove block">
+                                  <X className="h-3 w-3" />
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => moveParagraph(i, 1)}
-                                  disabled={i === form.content.length - 1}
-                                  className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors"
-                                  title="Move down"
-                                >
-                                  <ArrowDown className="h-3 w-3" />
-                                </button>
-                                {form.content.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeParagraph(i)}
-                                    className="p-1 text-muted-foreground hover:text-destructive transition-colors ml-1"
-                                    title="Remove"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                )}
-                              </div>
+                              )}
                             </div>
-                            {isImage ? (
-                              <div className="p-2 space-y-2">
-                                <img src={item} alt="" className="w-full h-32 object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                                <input
-                                  value={item}
-                                  onChange={(e) => updateContent(i, e.target.value)}
-                                  className="w-full bg-background border border-border px-3 py-2 font-body text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                                  placeholder="https://example.com/image.jpg"
-                                />
-                              </div>
-                            ) : (
-                              <textarea
-                                value={item}
-                                onChange={(e) => updateContent(i, e.target.value)}
-                                rows={4}
-                                className="w-full bg-background px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-y"
-                                placeholder={`Write paragraph ${i + 1}...`}
-                              />
-                            )}
                           </div>
-                        );
-                      })}
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={addParagraph}
-                          className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Add text
+                          {/* Block content */}
+                          {block.type === "image" ? (
+                            <div className="p-3">
+                              <ImageUpload
+                                value={block.value}
+                                onChange={(url) => {
+                                  const newBlocks = [...blocks];
+                                  newBlocks[i] = { ...block, value: url };
+                                  setBlocks(newBlocks);
+                                  markDirty();
+                                }}
+                              />
+                            </div>
+                          ) : block.type === "heading" ? (
+                            <textarea
+                              value={block.value}
+                              onChange={(e) => updateBlock(i, e.target.value)}
+                              rows={2}
+                              className="w-full bg-background px-3 py-2.5 font-heading text-2xl text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none"
+                              placeholder="Heading text..."
+                            />
+                          ) : block.type === "subheading" ? (
+                            <textarea
+                              value={block.value}
+                              onChange={(e) => updateBlock(i, e.target.value)}
+                              rows={2}
+                              className="w-full bg-background px-3 py-2.5 font-heading text-lg text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none"
+                              placeholder="Subheading text..."
+                            />
+                          ) : block.type === "quote" ? (
+                            <div className="flex">
+                              <div className="w-1 bg-primary/60 shrink-0 m-2 mr-0 rounded-sm" />
+                              <textarea
+                                value={block.value}
+                                onChange={(e) => updateBlock(i, e.target.value)}
+                                rows={3}
+                                className="flex-1 bg-background px-3 py-2.5 font-body text-sm text-foreground italic placeholder:text-muted-foreground/40 focus:outline-none resize-y"
+                                placeholder="Quote text..."
+                              />
+                            </div>
+                          ) : (
+                            <textarea
+                              value={block.value}
+                              onChange={(e) => updateBlock(i, e.target.value)}
+                              rows={4}
+                              className="w-full bg-background px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-y"
+                              placeholder={`Write paragraph ${i + 1}...`}
+                            />
+                          )}
+                        </div>
+                      ))}
+                      {/* Add block toolbar */}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button type="button" onClick={() => addBlock("text")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <Pilcrow className="h-3.5 w-3.5" /> Text
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => { setForm({ ...form, content: [...form.content, "https://"] }); markDirty(); }}
-                          className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" /> Add image
+                        <button type="button" onClick={() => addBlock("heading")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <Heading1 className="h-3.5 w-3.5" /> Heading
+                        </button>
+                        <button type="button" onClick={() => addBlock("subheading")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <Heading2 className="h-3.5 w-3.5" /> Subheading
+                        </button>
+                        <button type="button" onClick={() => addBlock("quote")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <Quote className="h-3.5 w-3.5" /> Quote
+                        </button>
+                        <button type="button" onClick={() => addBlock("image")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <ImageIcon className="h-3.5 w-3.5" /> Image
                         </button>
                       </div>
                     </div>
@@ -1373,7 +1454,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                           {form.title || "Article Title — TooRock Verse"}
                         </p>
                         <p className="font-body text-xs text-muted-foreground line-clamp-2">
-                          {form.content.find((p) => p.trim()) || "Article preview text will appear here based on your first paragraph..."}
+                          {blocks.find((b) => b.type === "text" && b.value.trim())?.value || "Article preview text will appear here based on your first paragraph..."}
                         </p>
                       </div>
                     </div>

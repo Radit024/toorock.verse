@@ -35,3 +35,21 @@ DROP TRIGGER IF EXISTS articles_updated_at ON articles;
 CREATE TRIGGER articles_updated_at
   BEFORE UPDATE ON articles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Admin credentials table (store your password in plain text)
+CREATE TABLE IF NOT EXISTS admins (
+  id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  password TEXT NOT NULL
+);
+
+-- Session tokens table (24-hour expiry)
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  token      TEXT PRIMARY KEY,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions (expires_at);
+
+-- Insert your admin password (replace 'your_password_here' with your actual password)
+-- Only run this once. Delete this line after inserting.
+-- INSERT INTO admins (password) VALUES ('your_password_here');
