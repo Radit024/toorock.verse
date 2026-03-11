@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
@@ -33,6 +34,7 @@ const Index = () => {
   }, [loadArticles]);
 
   const latestArticles = articles.slice(0, 6);
+  const trendingArticles = articles.slice(0, 5);
   const gamesArticles = articles.filter((a) => a.category === "Games");
   const animeArticles = articles.filter((a) => a.category === "Anime");
   const esportsArticles = articles.filter((a) => a.category === "Esports");
@@ -79,15 +81,15 @@ const Index = () => {
                   <h2 className="font-heading text-lg tracking-widest text-foreground">TRENDING</h2>
                 </div>
                 <div className="divide-y divide-border">
-                  {["Nintendo Switch 2 Full Specs Analysis", "Top 10 Anime Winter 2026", "VALORANT Patch 10.05 Agent Tier List", "Demon Slayer Infinity Castle Review"].map((title, i) => (
-                    <div key={i} className="px-4 py-3 flex items-start gap-3 hover:bg-secondary transition-colors cursor-pointer group">
-                      <span className="font-heading text-2xl text-muted-foreground group-hover:text-primary transition-colors">
+                  {trendingArticles.map((article, i) => (
+                    <Link key={article.id} to={`/article/${article.id}`} className="px-4 py-3 flex items-start gap-3 hover:bg-secondary transition-colors cursor-pointer group">
+                      <span className="font-heading text-2xl text-muted-foreground group-hover:text-primary transition-colors shrink-0">
                         {String(i + 1).padStart(2, "0")}
                       </span>
                       <span className="font-body text-xs text-foreground group-hover:text-primary transition-colors leading-snug pt-1">
-                        {title}
+                        {article.title}
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

@@ -27,14 +27,17 @@ const MobileDrawer = () => {
 
         {/* Search */}
         <div className="px-4 py-3 border-b border-border">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="SEARCH ARCHIVE..."
-              className="w-full bg-secondary border border-border pl-8 pr-3 py-2 text-xs font-meta text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-            />
-          </div>
+          <form onSubmit={(e) => { e.preventDefault(); const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value.trim(); if (q) { setOpen(false); window.location.href = `/search?q=${encodeURIComponent(q)}`; } }}>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                name="q"
+                type="text"
+                placeholder="SEARCH ARCHIVE..."
+                className="w-full bg-secondary border border-border pl-8 pr-3 py-2 text-xs font-meta text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              />
+            </div>
+          </form>
         </div>
 
         {/* Nav Items */}

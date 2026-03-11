@@ -1,4 +1,5 @@
 import { Gamepad2, Tv, Swords, Trophy, Film, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const categories = [
   { name: "Games", icon: Gamepad2 },
@@ -18,15 +19,16 @@ const CategoryBar = () => {
         </h2>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-0">
           {categories.map(({ name, icon: Icon }) => (
-            <button
+            <Link
               key={name}
+              to={`/category/${encodeURIComponent(name)}`}
               className="border border-border p-4 flex flex-col items-center gap-2 hover:bg-secondary hover:border-primary transition-colors group cursor-pointer"
             >
               <Icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               <span className="font-meta text-xs uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
                 {name}
               </span>
-            </button>
+            </Link>
           ))}
         </div>
       </div>

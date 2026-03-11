@@ -106,7 +106,7 @@ const ArticlePage = () => {
 
             <div className="space-y-5 mb-12">
               {article.content.map((paragraph, i) => (
-                <p key={i} className="font-body text-sm text-foreground/90 leading-relaxed">
+                <p key={i} className="font-body text-base text-foreground/90 leading-relaxed">
                   {i === 0 && <span className="font-heading text-4xl text-primary float-left mr-2 mt-1 leading-none">{paragraph.charAt(0)}</span>}
                   {i === 0 ? paragraph.slice(1) : paragraph}
                 </p>
