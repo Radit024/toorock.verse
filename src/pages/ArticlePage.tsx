@@ -18,9 +18,7 @@ const ArticlePage = () => {
     const load = async () => {
       try {
         const dbArticles = await fetchPublishedArticles();
-        if (dbArticles.length > 0) {
-          setAllArticles([...dbArticles.map(dbToArticle), ...fallbackArticles]);
-        }
+        setAllArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
       } catch {}
     };
     load();

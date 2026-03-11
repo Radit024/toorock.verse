@@ -11,6 +11,7 @@ import BottomNav from "@/components/BottomNav";
 import PullToRefresh from "@/components/PullToRefresh";
 import { articles as fallbackArticles } from "@/data/articles";
 import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const Index = () => {
@@ -19,17 +20,24 @@ const Index = () => {
   const loadArticles = useCallback(async () => {
     try {
       const dbArticles = await fetchPublishedArticles();
-      if (dbArticles.length > 0) {
-        const converted = dbArticles.map(dbToArticle);
-        setArticles([...converted, ...fallbackArticles]);
-      }
+      setArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
     } catch {
-      // Keep fallback data
+      setArticles(fallbackArticles);
     }
   }, []);
 
   useEffect(() => {
     loadArticles();
+  }, [loadArticles]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("articles-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
+        loadArticles();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [loadArticles]);
 
   const latestArticles = articles.slice(0, 6);

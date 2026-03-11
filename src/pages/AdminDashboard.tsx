@@ -8,6 +8,7 @@ import {
   Heading1, Heading2, Quote, Pilcrow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import PageTransition from "@/components/PageTransition";
 import ImageUpload from "@/components/ImageUpload";
@@ -157,8 +158,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     try {
       const data = await fetchAllArticles();
       setArticles(data);
-    } catch {
-      toast({ title: "Error", description: "Failed to load articles", variant: "destructive" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[AdminDashboard] fetchAllArticles error:", msg);
+      toast({ title: "Failed to load articles", description: msg, variant: "destructive" });
     }
     setLoading(false);
     setRefreshing(false);
@@ -1271,10 +1274,26 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                     ))}
                   </div>
 
+                  {/* Publish toggle */}
+                  <div className="border border-border p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-meta text-[10px] uppercase tracking-wider text-foreground">
+                        {form.published ? "Published" : "Draft"}
+                      </p>
+                      <p className="font-body text-[11px] text-muted-foreground mt-0.5">
+                        {form.published ? "Visible on main page" : "Not visible to readers"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.published}
+                      onCheckedChange={(v) => { setForm({ ...form, published: v }); markDirty(); }}
+                    />
+                  </div>
+
                   {/* Save button — visible on desktop sidebar */}
                   <div className="hidden lg:flex gap-2">
                     <Button type="submit" disabled={saving} className="flex-1 font-meta text-xs uppercase tracking-wider h-10">
-                      {saving ? "Saving..." : editingId ? "Update Article" : "Publish / Save"}
+                      {saving ? "Saving..." : editingId ? "Update" : "Save"}
                     </Button>
                   </div>
                 </div>
@@ -1463,14 +1482,23 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               </form>
 
               {/* ── Sticky save bar — mobile only ── */}
-              <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-background border-t border-border px-4 py-3 flex gap-2">
+              <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-background border-t border-border px-4 py-3 flex items-center gap-2">
+                <label className="flex items-center gap-2 flex-1 min-w-0">
+                  <Switch
+                    checked={form.published}
+                    onCheckedChange={(v) => { setForm({ ...form, published: v }); markDirty(); }}
+                  />
+                  <span className="font-meta text-[10px] uppercase tracking-wider text-foreground truncate">
+                    {form.published ? "Published" : "Draft"}
+                  </span>
+                </label>
                 <Button
                   type="button"
                   onClick={() => formRef.current?.requestSubmit()}
                   disabled={saving}
-                  className="flex-1 font-meta text-xs uppercase tracking-wider h-10"
+                  className="font-meta text-xs uppercase tracking-wider h-10 px-5"
                 >
-                  {saving ? "Saving..." : editingId ? "Update Article" : "Publish / Save"}
+                  {saving ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   type="button"
