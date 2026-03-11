@@ -198,11 +198,13 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Category Sections */}
-          <SectionBlock title="GAMES" category="Games" articles={gamesArticles} />
-          <SectionBlock title="ANIME" category="Anime" articles={animeArticles} />
-          <SectionBlock title="ESPORTS" category="Esports" articles={esportsArticles} />
-          <SectionBlock title="CULTURE & FILM" category="Culture" articles={cultureArticles} />
+          {/* Category Sections — merged into one bordered block */}
+          <div className="border border-border mt-8">
+            <SectionBlock title="GAMES" category="Games" articles={gamesArticles} />
+            <SectionBlock title="ANIME" category="Anime" articles={animeArticles} />
+            <SectionBlock title="ESPORTS" category="Esports" articles={esportsArticles} />
+            <SectionBlock title="CULTURE & FILM" category="Culture" articles={cultureArticles} />
+          </div>
 
         </main>
       </PullToRefresh>

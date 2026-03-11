@@ -8,12 +8,15 @@ interface ArticleCardProps {
   date: string;
   isBreaking?: boolean;
   size?: "large" | "medium" | "small";
+  merged?: boolean;
 }
 
-const ArticleCard = ({ id, image, title, category, date, isBreaking, size = "medium" }: ArticleCardProps) => {
+const ArticleCard = ({ id, image, title, category, date, isBreaking, size = "medium", merged = false }: ArticleCardProps) => {
   return (
     <Link to={`/article/${id}`}>
-      <article className={`article-card border border-border group cursor-pointer h-full flex flex-col ${
+      <article className={`article-card group cursor-pointer h-full flex flex-col ${
+        !merged ? "border border-border" : ""
+      } ${
         size === "large" ? "row-span-2" : ""
       }`}>
         <div className="relative overflow-hidden">

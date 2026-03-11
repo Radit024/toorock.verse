@@ -14,9 +14,9 @@ const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
   if (articles.length === 0) return null;
 
   return (
-    <section className="py-8 mt-4 border-t border-border">
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="font-heading text-2xl text-foreground tracking-widest">{title}</h2>
+    <section>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-secondary/20">
+        <h2 className="font-heading text-xl text-foreground tracking-widest">{title}</h2>
         <div className="flex-1 h-px bg-border" />
         <Link
           to={`/category/${encodeURIComponent(category)}`}
@@ -27,15 +27,17 @@ const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
         </Link>
       </div>
 
-      {/* Desktop grid */}
-      <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Desktop grid — cards merged together with dividers */}
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 divide-x divide-border border-b border-border">
         {articles.slice(0, 4).map((article) => (
-          <ArticleCard key={article.id} {...article} size="small" />
+          <ArticleCard key={article.id} {...article} size="small" merged />
         ))}
       </div>
 
       {/* Mobile swipeable */}
-      <SwipeableCards articles={articles.slice(0, 6)} />
+      <div className="md:hidden border-b border-border">
+        <SwipeableCards articles={articles.slice(0, 6)} />
+      </div>
     </section>
   );
 };

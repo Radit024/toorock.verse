@@ -752,7 +752,6 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               ["overview", BarChart3, "Overview", activityLog.length > 0 ? String(activityLog.length) : null],
               ["articles", FileText, "Articles", articles.length > 0 ? String(articles.length) : null],
               ["form", Plus, editingId ? "Edit Article" : "New Article", null],
-              ["profile", UserCircle2, "Profile", null],
             ] as const).map(([v, Icon, label, badge]) => (
               <button
                 key={v}
@@ -1307,54 +1306,6 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                           value={form.read_time}
                           onChange={(e) => { setForm({ ...form, read_time: e.target.value }); markDirty(); }}
                           className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Author */}
-                  <div className="border border-border">
-                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
-                      <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Author</span>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Name</label>
-                        <input
-                          value={form.author_name}
-                          onChange={(e) => { setForm({ ...form, author_name: e.target.value }); markDirty(); }}
-                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                          placeholder="Full name..."
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Role</label>
-                          <input
-                            value={form.author_role}
-                            onChange={(e) => { setForm({ ...form, author_role: e.target.value }); markDirty(); }}
-                            className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Initials</label>
-                          <input
-                            value={form.author_avatar}
-                            onChange={(e) => { setForm({ ...form, author_avatar: e.target.value.toUpperCase().slice(0, 2) }); markDirty(); }}
-                            className="w-full bg-background border border-border px-3 py-2 font-heading text-lg text-foreground focus:outline-none focus:border-primary text-center"
-                            maxLength={2}
-                            placeholder="AB"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Bio <span className="normal-case tracking-normal">(shown on article page)</span></label>
-                        <textarea
-                          value={form.author_bio}
-                          onChange={(e) => { setForm({ ...form, author_bio: e.target.value }); markDirty(); }}
-                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
-                          rows={3}
-                          placeholder="Short author bio..."
                         />
                       </div>
                     </div>
