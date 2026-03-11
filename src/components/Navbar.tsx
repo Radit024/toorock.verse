@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import MobileDrawer from "@/components/MobileDrawer";
 
 const navItems = ["Artikel", "Review", "Anime", "Games", "Esports"];
 
@@ -7,7 +8,8 @@ const Navbar = () => {
   return (
     <nav className="border-b border-border bg-background sticky top-0 z-50">
       <div className="container flex items-center justify-between h-14">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          <MobileDrawer />
           <h1 className="font-heading text-3xl text-primary tracking-widest">
            TooRock Verse
           </h1>
@@ -23,7 +25,7 @@ const Navbar = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
+          <div className="relative hidden md:block">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"

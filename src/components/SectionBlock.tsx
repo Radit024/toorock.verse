@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
+import SwipeableCards from "@/components/SwipeableCards";
 import type { Article } from "@/data/articles";
 
 interface SectionBlockProps {
@@ -26,11 +27,15 @@ const SectionBlock = ({ title, category, articles }: SectionBlockProps) => {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Desktop grid */}
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4">
         {articles.slice(0, 4).map((article) => (
           <ArticleCard key={article.id} {...article} size="small" />
         ))}
       </div>
+
+      {/* Mobile swipeable */}
+      <SwipeableCards articles={articles.slice(0, 6)} />
     </section>
   );
 };
