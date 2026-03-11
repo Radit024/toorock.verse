@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, ArrowLeft, Zap,
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
@@ -57,6 +57,26 @@ const ACTION_COLOR: Record<LogAction, string> = {
 };
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const isAuthenticated = !!localStorage.getItem("adminToken");
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/admin/login", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) return null;
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    navigate("/admin/login", { replace: true });
+  };
+
+  return <AdminDashboardContent onLogout={handleLogout} />;
+};
+
+const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [articles, setArticles] = useState<DbArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("overview");
@@ -569,6 +589,13 @@ const AdminDashboard = () => {
               <Link to="/" className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">
                 <ArrowLeft className="h-3.5 w-3.5" /><span>Back to site</span>
               </Link>
+              <button
+                onClick={onLogout}
+                className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors"
+                title="Sign out"
+              >
+                Sign out
+              </button>
             </div>
           </div>
         </div>

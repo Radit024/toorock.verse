@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 export interface DbArticle {
@@ -18,72 +17,72 @@ export interface DbArticle {
   updated_at: string;
 }
 
-export const fetchPublishedArticles = async (): Promise<DbArticle[]> => {
-  const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("published", true)
-    .order("created_at", { ascending: false });
+function getAuthHeader(): Record<string, string> {
+  const token = localStorage.getItem("adminToken");
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
 
-  if (error) throw error;
-  return (data || []) as DbArticle[];
+async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error || `Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const fetchPublishedArticles = async (): Promise<DbArticle[]> => {
+  return apiRequest<DbArticle[]>("/api/articles");
 };
 
 export const fetchAllArticles = async (): Promise<DbArticle[]> => {
-  const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return (data || []) as DbArticle[];
+  return apiRequest<DbArticle[]>("/api/articles?all=1", {
+    headers: getAuthHeader(),
+  });
 };
 
 export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null> => {
-  const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("slug", slug)
-    .eq("published", true)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as DbArticle | null;
+  try {
+    return await apiRequest<DbArticle>(`/api/article/${encodeURIComponent(slug)}`);
+  } catch {
+    return null;
+  }
 };
 
-export const createArticle = async (article: Omit<DbArticle, "id" | "created_at" | "updated_at">) => {
-  const { data, error } = await supabase
-    .from("articles")
-    .insert(article)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export const createArticle = async (
+  article: Omit<DbArticle, "id" | "created_at" | "updated_at">
+): Promise<DbArticle> => {
+  return apiRequest<DbArticle>("/api/articles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(article),
+  });
 };
 
-export const updateArticle = async (id: string, updates: Partial<Omit<DbArticle, "id" | "created_at" | "updated_at">>) => {
-  const { data, error } = await supabase
-    .from("articles")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export const updateArticle = async (
+  id: string,
+  updates: Partial<Omit<DbArticle, "id" | "created_at" | "updated_at">>
+): Promise<DbArticle> => {
+  return apiRequest<DbArticle>(`/api/articles/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(updates),
+  });
 };
 
-export const deleteArticle = async (id: string) => {
-  const { error } = await supabase
-    .from("articles")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw error;
+export const deleteArticle = async (id: string): Promise<void> => {
+  const token = localStorage.getItem("adminToken");
+  const res = await fetch(`/api/articles/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token || ""}` },
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error || `Delete failed: ${res.status}`);
+  }
 };
 
-// Convert DbArticle to the frontend Article format
 export const dbToArticle = (db: DbArticle): Article => ({
   id: db.slug,
   image: db.image_url || "/placeholder.svg",

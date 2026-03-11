@@ -11,6 +11,7 @@ import ArticlePage from "./pages/ArticlePage.tsx";
 import CategoryPage from "./pages/CategoryPage.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import AdminLogin from "./pages/AdminLogin.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const AnimatedRoutes = () => {
         <Route path="/article/:id" element={<ArticlePage />} />
         <Route path="/category/:category" element={<CategoryPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
