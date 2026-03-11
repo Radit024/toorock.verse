@@ -212,19 +212,115 @@ const Index = () => {
       <BottomNav />
 
       {/* Footer */}
-      <footer className="border-t border-border">
-        <div className="container py-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h2 className="font-heading text-2xl text-primary tracking-widest">ToRock Verse</h2>
-              <p className="font-meta text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
-                Games & Anime Intelligence Archive
+      <footer className="border-t border-border mt-0 pb-20 md:pb-0">
+        <div className="container">
+
+          {/* Main footer grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-0 divide-y md:divide-y-0 md:divide-x divide-border border-b border-border">
+
+            {/* Brand column */}
+            <div className="py-8 md:pr-8">
+              <h2 className="font-heading text-3xl text-primary tracking-widest">ToRock<br />Verse</h2>
+              <p className="font-meta text-[10px] text-muted-foreground uppercase tracking-wider mt-2 mb-4">
+                Games · Anime · Esports · Film
+              </p>
+              <p className="font-body text-xs text-muted-foreground leading-relaxed">
+                Independent pop-culture intelligence. Breaking coverage, reviews, and live scores — all in one place.
               </p>
             </div>
+
+            {/* Categories */}
+            <div className="py-8 md:px-8">
+              <h3 className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground mb-4">Categories</h3>
+              <ul className="space-y-2.5">
+                {["Games", "Anime", "Esports", "Film", "Culture"].map((cat) => (
+                  <li key={cat}>
+                    <Link
+                      to={`/category/${encodeURIComponent(cat)}`}
+                      className="font-heading text-sm text-foreground hover:text-primary transition-colors tracking-wide"
+                    >
+                      {cat.toUpperCase()}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Navigate */}
+            <div className="py-8 md:px-8">
+              <h3 className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground mb-4">Navigate</h3>
+              <ul className="space-y-2.5">
+                {[
+                  { label: "Home", to: "/" },
+                  { label: "Latest", to: "/category/latest" },
+                  { label: "Breaking News", to: "/category/breaking" },
+                  { label: "Reviews", to: "/category/reviews" },
+                  { label: "Search", to: "/search" },
+                ].map(({ label, to }) => (
+                  <li key={label}>
+                    <Link
+                      to={to}
+                      className="font-heading text-sm text-foreground hover:text-primary transition-colors tracking-wide"
+                    >
+                      {label.toUpperCase()}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* About */}
+            <div className="py-8 md:pl-8">
+              <h3 className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground mb-4">About</h3>
+              <ul className="space-y-2.5 mb-6">
+                {[
+                  { label: "About Us", to: "/about" },
+                  { label: "Contact", to: "/contact" },
+                  { label: "Privacy Policy", to: "/privacy" },
+                  { label: "Terms of Use", to: "/terms" },
+                ].map(({ label, to }) => (
+                  <li key={label}>
+                    <Link
+                      to={to}
+                      className="font-heading text-sm text-foreground hover:text-primary transition-colors tracking-wide"
+                    >
+                      {label.toUpperCase()}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <h3 className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Follow Us</h3>
+              <div className="flex gap-3">
+                {[
+                  { label: "X", href: "https://x.com/ToRockVerse" },
+                  { label: "IG", href: "https://instagram.com/torock.verse" },
+                  { label: "YT", href: "https://youtube.com/@ToRockVerse" },
+                  { label: "DC", href: "https://discord.gg/torockverse" },
+                ].map(({ label, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-heading text-[11px] tracking-widest border border-border px-2 py-1 text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                  >
+                    {label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-2 py-4">
             <p className="font-meta text-[10px] text-muted-foreground">
               © 2026 ToRock Verse. ALL RIGHTS RESERVED.
             </p>
+            <p className="font-meta text-[10px] text-muted-foreground">
+              BUILT WITH ♥ FOR THE COMMUNITY
+            </p>
           </div>
+
         </div>
       </footer>
     </div>
