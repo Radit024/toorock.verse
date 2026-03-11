@@ -153,3 +153,16 @@
 .ticker-scroll:hover {
   animation-play-state: paused;
 }
+
+/* Text size variants */
+.text-size-small {
+  font-size: 87.5%;
+}
+
+.text-size-medium {
+  font-size: 100%;
+}
+
+.text-size-large {
+  font-size: 112.5%;
+}

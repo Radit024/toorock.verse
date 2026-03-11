@@ -51,6 +51,12 @@
   </head>
 
   <body>
+    <script>
+      (function() {
+        var s = localStorage.getItem('text-size') || 'medium';
+        document.documentElement.classList.add('text-size-' + s);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
