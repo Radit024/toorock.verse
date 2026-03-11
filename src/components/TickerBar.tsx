@@ -1,17 +1,21 @@
+import { useNavigate } from "react-router-dom";
+
 const headlines = [
-  "BREAKING: Elden Ring Nightreign Release Date Confirmed for June 2026",
-  "One Piece Live Action Season 2 Officially Drops March 2026",
-  "VALORANT Masters Santiago 2026 — G2 vs Paper Rex Finals Preview",
-  "Chainsaw Man Season 3 Announced with New Studio",
-  "GTA VI Gameplay Leak Reveals Vice City Map Scale",
-  "Jujutsu Kaisen Manga Spinoff Series Confirmed",
-  "Nintendo Switch 2 Launch Lineup: 15 Titles Revealed",
-  "Demon Slayer Infinity Castle Film Breaks Box Office Records",
-  "Riot Games Announces New Tactical FPS Codenamed 'Project K'",
-  "Attack on Titan Remake Confirmed by MAPPA Studios",
+  { text: "BREAKING: Elden Ring Nightreign Release Date Confirmed for June 2026", query: "Elden Ring Nightreign" },
+  { text: "One Piece Live Action Season 2 Officially Drops March 2026", query: "Anime" },
+  { text: "VALORANT Masters Santiago 2026 — G2 vs Paper Rex Finals Preview", query: "VALORANT" },
+  { text: "Chainsaw Man Season 3 Announced with New Studio", query: "Anime" },
+  { text: "GTA VI Gameplay Leak Reveals Vice City Map Scale", query: "Games" },
+  { text: "Jujutsu Kaisen Manga Spinoff Series Confirmed", query: "Anime" },
+  { text: "Nintendo Switch 2 Launch Lineup: 15 Titles Revealed", query: "Nintendo Switch" },
+  { text: "Demon Slayer Infinity Castle Film Breaks Box Office Records", query: "Demon Slayer" },
+  { text: "Riot Games Announces New Tactical FPS Codenamed 'Project K'", query: "Esports" },
+  { text: "Attack on Titan Remake Confirmed by MAPPA Studios", query: "Anime" },
 ];
 
 const TickerBar = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="border-b border-border bg-secondary overflow-hidden">
       <div className="flex items-center">
@@ -21,9 +25,13 @@ const TickerBar = () => {
         <div className="overflow-hidden relative flex-1">
           <div className="ticker-scroll flex items-center gap-8 whitespace-nowrap py-2 px-4">
             {[...headlines, ...headlines].map((headline, i) => (
-              <span key={i} className="font-body text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+              <span
+                key={i}
+                onClick={() => navigate(`/search?q=${encodeURIComponent(headline.query)}`)}
+                className="font-body text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+              >
                 <span className="text-primary mr-2">■</span>
-                {headline}
+                {headline.text}
               </span>
             ))}
           </div>
