@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Clock, Share2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
@@ -50,8 +51,41 @@ const ArticlePage = () => {
     .slice(0, 3 - related.length);
   const relatedAll = [...related, ...otherArticles];
 
+  const description = article.content[0]
+    ? article.content[0].slice(0, 155) + (article.content[0].length > 155 ? "..." : "")
+    : `${article.category} news from TooRock Verse.`;
+  const canonicalUrl = `https://toorock.verse/article/${article.id}`;
+
   return (
     <PageTransition>
+    <Helmet>
+      <title>{article.title} — TooRock Verse</title>
+      <meta name="description" content={description} />
+      <meta name="keywords" content={`${article.category}, anime, games, esports, TooRock Verse, ${article.title}`} />
+      <meta property="og:title" content={article.title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:type" content="article" />
+      <meta property="og:url" content={canonicalUrl} />
+      {article.image && <meta property="og:image" content={article.image} />}
+      <meta property="article:section" content={article.category} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={article.title} />
+      <meta name="twitter:description" content={description} />
+      {article.image && <meta name="twitter:image" content={article.image} />}
+      <link rel="canonical" href={canonicalUrl} />
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": article.title,
+        "description": description,
+        "image": article.image ? [article.image] : [],
+        "articleSection": article.category,
+        "author": { "@type": "Person", "name": article.author.name },
+        "publisher": { "@type": "Organization", "name": "TooRock Verse", "url": "https://toorock.verse/" },
+        "url": canonicalUrl,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl }
+      })}</script>
+    </Helmet>
     <div className="min-h-screen bg-background">
       <Navbar />
       <TickerBar />

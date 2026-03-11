@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
@@ -35,6 +36,11 @@ const SearchPage = () => {
 
   return (
     <PageTransition>
+      <Helmet>
+        <title>{query ? `"${query}" — Search — TooRock Verse` : "Search — TooRock Verse"}</title>
+        <meta name="description" content={query ? `Search results for "${query}" on TooRock Verse — ${filtered.length} article${filtered.length !== 1 ? "s" : ""} found.` : "Search for anime, games, esports, and culture articles on TooRock Verse."} />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
       <div className="min-h-screen bg-background">
         <Navbar />
         <TickerBar />

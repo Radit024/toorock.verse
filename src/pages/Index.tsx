@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
@@ -42,6 +43,15 @@ const Index = () => {
 
   return (
     <PageTransition>
+    <Helmet>
+      <title>TooRock Verse — Anime, Games, Esports &amp; Culture News</title>
+      <meta name="description" content="TooRock Verse is your ultimate source for the latest anime, games, esports, films, and pop-culture news. Breaking coverage, reviews, and live scores." />
+      <meta property="og:title" content="TooRock Verse — Anime, Games, Esports & Culture News" />
+      <meta property="og:description" content="Your ultimate source for anime, games, esports, films, and pop-culture news." />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://toorock.verse/" />
+      <link rel="canonical" href="https://toorock.verse/" />
+    </Helmet>
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
       <TickerBar />

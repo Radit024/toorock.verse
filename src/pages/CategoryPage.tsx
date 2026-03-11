@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
@@ -29,8 +30,20 @@ const CategoryPage = () => {
     (a) => a.category.toLowerCase() === decodedCategory.toLowerCase()
   );
 
+  const categoryTitle = decodedCategory.charAt(0).toUpperCase() + decodedCategory.slice(1);
+  const canonicalUrl = `https://toorock.verse/category/${encodeURIComponent(decodedCategory)}`;
+
   return (
     <PageTransition>
+      <Helmet>
+        <title>{categoryTitle} News — TooRock Verse</title>
+        <meta name="description" content={`Browse the latest ${categoryTitle} news, reviews, and articles on TooRock Verse. ${filtered.length} article${filtered.length !== 1 ? "s" : ""} available.`} />
+        <meta property="og:title" content={`${categoryTitle} — TooRock Verse`} />
+        <meta property="og:description" content={`Latest ${categoryTitle} news and articles on TooRock Verse.`} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <link rel="canonical" href={canonicalUrl} />
+      </Helmet>
       <div className="min-h-screen bg-background">
         <Navbar />
         <TickerBar />

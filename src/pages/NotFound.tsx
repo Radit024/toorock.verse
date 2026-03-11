@@ -1,5 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransition";
 
@@ -12,6 +13,11 @@ const NotFound = () => {
 
   return (
     <PageTransition>
+      <Helmet>
+        <title>404 — Page Not Found — TooRock Verse</title>
+        <meta name="description" content="The page you are looking for doesn't exist. Return to TooRock Verse for the latest anime, games, and esports news." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="min-h-screen bg-background">
         <Navbar />
 
