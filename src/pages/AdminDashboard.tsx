@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowLeft, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import PageTransition from "@/components/PageTransition";
+import ImageUpload from "@/components/ImageUpload";
 import {
   fetchAllArticles,
   createArticle,
