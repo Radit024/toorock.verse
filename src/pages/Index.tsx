@@ -52,7 +52,7 @@ const Index = () => {
               <span className="font-meta text-[10px] uppercase text-muted-foreground">PAGE 01</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 auto-rows-auto">
               <div className="md:row-span-2 border-r-0 md:border-r border-border">
                 <ArticleCard {...latestArticles[0]} size="large" />
               </div>
@@ -60,7 +60,7 @@ const Index = () => {
               <ArticleCard {...latestArticles[2]} size="medium" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-4">
               {latestArticles.slice(3).map((article) => (
                 <ArticleCard key={article.id} {...article} size="small" />
               ))}
