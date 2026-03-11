@@ -37,7 +37,7 @@ const ArticleCard = ({ id, image, title, category, date, isBreaking, size = "med
             <span className="font-meta text-[10px] text-muted-foreground">•</span>
             <span className="font-meta text-[10px] text-muted-foreground">{date}</span>
           </div>
-          <h3 className={`font-heading leading-tight text-foreground group-hover:text-primary transition-colors ${
+          <h3 className={`font-heading leading-tight text-primary transition-colors ${
             size === "large" ? "text-2xl" : size === "small" ? "text-base" : "text-lg"
           }`}>
             {title}

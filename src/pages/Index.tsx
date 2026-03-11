@@ -107,13 +107,13 @@ const Index = () => {
         <div className="container py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="font-heading text-2xl text-primary tracking-widest">SIGNAL//</h2>
+              <h2 className="font-heading text-2xl text-primary tracking-widest">TooRock Verse</h2>
               <p className="font-meta text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
                 Games & Anime Intelligence Archive
               </p>
             </div>
             <p className="font-meta text-[10px] text-muted-foreground">
-              © 2026 SIGNAL. ALL RIGHTS RESERVED.
+              © 2026 TooRock Verse. ALL RIGHTS RESERVED.
             </p>
           </div>
         </div>

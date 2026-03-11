@@ -114,12 +114,12 @@
 }
 
 .article-card-image {
-  filter: grayscale(100%);
+  filter: grayscale(0%) saturate(1.2);
   transition: filter 0.2s ease;
 }
 
 .article-card:hover .article-card-image {
-  filter: grayscale(0%) saturate(1.4);
+  filter: grayscale(0%) saturate(1.6);
 }
 
 .article-card:hover .scanline-overlay {

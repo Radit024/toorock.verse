@@ -58,7 +58,7 @@ const ArticlePage = () => {
 
       <main className="container py-6">
         <div className="flex items-center gap-2 mb-6 font-meta text-[10px] uppercase tracking-wider">
-          <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Signal</Link>
+          <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">TooRock Verse</Link>
           <span className="text-muted-foreground">/</span>
           <span className="text-muted-foreground">{article.category}</span>
           <span className="text-muted-foreground">/</span>
@@ -143,7 +143,7 @@ const ArticlePage = () => {
                   </div>
                 </div>
                 <p className="font-body text-xs text-muted-foreground leading-relaxed">
-                  Covering the latest in {article.category.toLowerCase()} culture, industry news, and community developments for SIGNAL//.
+                  Covering the latest in {article.category.toLowerCase()} culture, industry news, and community developments for TooRock Verse//.
                 </p>
               </div>
             </div>
@@ -174,10 +174,10 @@ const ArticlePage = () => {
         <div className="container py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="font-heading text-2xl text-primary tracking-widest">SIGNAL//</h2>
+              <h2 className="font-heading text-2xl text-primary tracking-widest">TooRock Verse</h2>
               <p className="font-meta text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Games & Anime Intelligence Archive</p>
             </div>
-            <p className="font-meta text-[10px] text-muted-foreground">© 2026 SIGNAL. ALL RIGHTS RESERVED.</p>
+            <p className="font-meta text-[10px] text-muted-foreground">© 2026 TooRock Verse. ALL RIGHTS RESERVED.</p>
           </div>
         </div>
       </footer>

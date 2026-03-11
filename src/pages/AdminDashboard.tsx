@@ -141,7 +141,7 @@ const AdminDashboard = () => {
         <div className="border-b border-border bg-background sticky top-0 z-50">
           <div className="container flex items-center justify-between h-14">
             <div className="flex items-center gap-4">
-              <Link to="/" className="font-heading text-3xl text-primary tracking-widest">SIGNAL//</Link>
+              <Link to="/" className="font-heading text-3xl text-primary tracking-widest">TooRock Verse</Link>
               <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground border border-border px-2 py-0.5">
                 ADMIN PANEL
               </span>
