@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
-import LiveScorePanel from "@/components/LiveScorePanel";
 import SectionBlock from "@/components/SectionBlock";
 import BottomNav from "@/components/BottomNav";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -176,8 +175,6 @@ const Index = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              <LiveScorePanel />
-
               <div className="border border-border">
                 <div className="border-b border-border px-4 py-3">
                   <h2 className="font-heading text-lg tracking-widest text-foreground">TRENDING</h2>
