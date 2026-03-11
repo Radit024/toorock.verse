@@ -60,7 +60,7 @@ const Index = () => {
               <ArticleCard {...latestArticles[2]} size="medium" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               {latestArticles.slice(3).map((article) => (
                 <ArticleCard key={article.id} {...article} size="small" />
               ))}
