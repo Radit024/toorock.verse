@@ -67,17 +67,66 @@ const Index = () => {
                 <span className="font-meta text-[10px] uppercase text-muted-foreground">PAGE 01</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:row-span-2">
-                  <ArticleCard {...latestArticles[0]} size="large" />
-                </div>
-                <ArticleCard {...latestArticles[1]} size="medium" />
-                <ArticleCard {...latestArticles[2]} size="medium" />
-              </div>
+              {/* Hero feature — full-width cinematic card */}
+              {latestArticles[0] && (
+                <Link to={`/article/${latestArticles[0].id}`} className="block relative overflow-hidden mb-4 border border-border group article-card">
+                  <img
+                    src={latestArticles[0].image}
+                    alt={latestArticles[0].title}
+                    className="article-card-image w-full h-64 md:h-[420px] object-cover"
+                  />
+                  <div className="scanline-overlay absolute inset-0" />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+                  {/* Breaking badge */}
+                  {latestArticles[0].isBreaking && (
+                    <span className="absolute top-4 left-4 bg-primary text-primary-foreground font-heading text-xs px-2 py-0.5 tracking-widest z-10">
+                      BREAKING
+                    </span>
+                  )}
+                  {/* Text overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-meta text-[10px] uppercase tracking-wider text-primary">{latestArticles[0].category}</span>
+                      <span className="font-meta text-[9px] text-muted-foreground/70">•</span>
+                      <span className="font-meta text-[9px] text-muted-foreground/70">{latestArticles[0].date}</span>
+                    </div>
+                    <h3 className="font-heading text-2xl md:text-4xl leading-tight text-foreground group-hover:text-primary transition-colors">
+                      {latestArticles[0].title}
+                    </h3>
+                  </div>
+                </Link>
+              )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                {latestArticles.slice(3).map((article) => (
-                  <ArticleCard key={article.id} {...article} size="small" />
+              {/* Numbered horizontal strip — articles 2–6 */}
+              <div className="border border-border divide-y divide-border">
+                {latestArticles.slice(1).map((article, i) => (
+                  <Link
+                    key={article.id}
+                    to={`/article/${article.id}`}
+                    className="flex items-center gap-4 px-3 py-3 hover:bg-secondary/40 transition-colors group article-card"
+                  >
+                    <span className="font-heading text-2xl text-muted-foreground group-hover:text-primary transition-colors shrink-0 w-8 text-center leading-none">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <img
+                      src={article.image}
+                      alt={article.title}
+                      className="article-card-image w-20 h-14 object-cover shrink-0 border border-border"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-meta text-[9px] uppercase tracking-wider text-primary">{article.category}</span>
+                        <span className="font-meta text-[9px] text-muted-foreground">{article.date}</span>
+                        {article.isBreaking && (
+                          <span className="font-meta text-[9px] uppercase tracking-wider text-primary border border-primary px-1">Breaking</span>
+                        )}
+                      </div>
+                      <h3 className="font-heading text-base md:text-lg leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
