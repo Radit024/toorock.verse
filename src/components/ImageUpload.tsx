@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -10,17 +10,14 @@ interface ImageUploadProps {
 
 const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       toast({ title: "Error", description: "Image must be under 5MB", variant: "destructive" });
       return;
@@ -30,24 +27,40 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
     const ext = file.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from("article-images")
-      .upload(path, file);
-
+    const { error } = await supabase.storage.from("article-images").upload(path, file);
     if (error) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
       setUploading(false);
       return;
     }
 
-    const { data: urlData } = supabase.storage
-      .from("article-images")
-      .getPublicUrl(path);
-
+    const { data: urlData } = supabase.storage.from("article-images").getPublicUrl(path);
     onChange(urlData.publicUrl);
     setUploading(false);
     toast({ title: "Uploaded", description: "Image ready" });
+  }, [onChange]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
   };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
+  }, [uploadFile]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
 
   const handleClear = () => {
     onChange("");
@@ -62,11 +75,7 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
 
       {value ? (
         <div className="relative inline-block">
-          <img
-            src={value}
-            alt="Preview"
-            className="w-full max-w-xs h-32 object-cover border border-border"
-          />
+          <img src={value} alt="Preview" className="w-full max-w-xs h-32 object-cover border border-border" />
           <button
             type="button"
             onClick={handleClear}
@@ -76,34 +85,32 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
           </button>
         </div>
       ) : (
-        <button
-          type="button"
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
           onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="w-full max-w-xs h-32 border border-dashed border-border bg-secondary flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors cursor-pointer disabled:opacity-50"
+          className={`w-full max-w-xs h-32 border-2 border-dashed bg-secondary flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+            dragOver
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary"
+          } ${uploading ? "opacity-50 pointer-events-none" : ""}`}
         >
           {uploading ? (
             <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
           ) : (
             <>
-              <Upload className="h-5 w-5 text-muted-foreground" />
-              <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">
-                Click to upload
+              <Upload className={`h-5 w-5 ${dragOver ? "text-primary" : "text-muted-foreground"}`} />
+              <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground text-center px-4">
+                {dragOver ? "Drop image here" : "Drag & drop or click to upload"}
               </span>
             </>
           )}
-        </button>
+        </div>
       )}
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleUpload}
-        className="hidden"
-      />
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
 
-      {/* Fallback URL input */}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
