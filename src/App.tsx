@@ -34,6 +34,18 @@ const AnimatedRoutes = () => {
   );
 };
 
+const AppShell = () => {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
+  return (
+    <>
+      <ScrollToTop />
+      <AnimatedRoutes />
+      {!isAdmin && <BottomNav />}
+    </>
+  );
+};
+
 const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
@@ -41,9 +53,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ScrollToTop />
-          <AnimatedRoutes />
-          <BottomNav />
+          <AppShell />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
