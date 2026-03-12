@@ -1,7 +1,6 @@
 ﻿import { Search, Radio, ChevronRight, Settings, Moon, Sun, ALargeSmall } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import MobileDrawer from "@/components/MobileDrawer";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -86,9 +85,8 @@ const Navbar = () => {
       <div className="border-b border-border">
         <div className="container flex items-center justify-between h-14 gap-4">
 
-          {/* Left: hamburger + logo */}
+          {/* Left: logo */}
           <div className="flex items-center gap-3 shrink-0">
-            <MobileDrawer />
             <Link to="/" className="flex flex-col leading-none group">
               <span className="font-heading text-[1.75rem] text-primary tracking-widest group-hover:opacity-80 transition-opacity">
                 ToRock Verse
@@ -122,12 +120,12 @@ const Navbar = () => {
 
           {/* Right: search + settings */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Expanding search */}
-            <div className="hidden md:flex items-center">
+            {/* Expanding search — visible on all sizes */}
+            <div className="flex items-center">
               <form
                 onSubmit={handleSearch}
                 className={`flex items-center transition-all duration-200 overflow-hidden border ${
-                  searchOpen ? "border-primary w-48" : "border-transparent w-8"
+                  searchOpen ? "border-primary w-40 md:w-48" : "border-transparent w-8"
                 } bg-secondary`}
               >
                 <button
@@ -145,14 +143,14 @@ const Navbar = () => {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-                    placeholder="SEARCH ARCHIVE..."
+                    placeholder="SEARCH..."
                     className="bg-transparent pr-3 py-1.5 text-xs font-meta text-foreground placeholder:text-muted-foreground focus:outline-none w-full"
                   />
                 )}
               </form>
             </div>
 
-            <span className="hidden md:block w-px h-6 bg-border" />
+            <span className="w-px h-6 bg-border" />
 
             {/* Settings dropdown */}
             <div ref={settingsRef} className="relative">
