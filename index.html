@@ -6,6 +6,13 @@
     <link rel="icon" type="image/x-icon" href="/Torock.ico" />
     <link rel="shortcut icon" type="image/x-icon" href="/Torock.ico" />
     <link rel="apple-touch-icon" href="/Torock.ico" />
+    <script>
+      (function () {
+        var t = localStorage.getItem('text-size');
+        var s = { small: '87.5%', medium: '100%', large: '125%' };
+        document.documentElement.style.fontSize = s[t] || '100%';
+      })();
+    </script>
 
     <!-- Primary SEO -->
     <title>ToRock Verse — Anime, Games, Esports, Movie News and Reviews</title>

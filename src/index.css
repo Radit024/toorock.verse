@@ -154,15 +154,15 @@
   animation-play-state: paused;
 }
 
-/* Text size variants */
+/* Text size variants — fallback for class-based approach */
 .text-size-small {
   font-size: 87.5%;
 }
 
 .text-size-medium {
-  font-size: 112.5%;
+  font-size: 100%;
 }
 
 .text-size-large {
-  font-size: 131.25%;
+  font-size: 125%;
 }

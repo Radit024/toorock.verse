@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Gamepad2, Tv, Swords, Film } from "lucide-react";
+import { Home, Gamepad2, Tv, Swords, Film, Clapperboard, BookOpen } from "lucide-react";
 
 const tabs = [
   { label: "Home", icon: Home, href: "/" },
   { label: "Games", icon: Gamepad2, href: "/category/Games" },
   { label: "Anime", icon: Tv, href: "/category/Anime" },
   { label: "Esports", icon: Swords, href: "/category/Esports" },
-  { label: "Culture", icon: Film, href: "/category/Culture" },
+  { label: "Movies", icon: Clapperboard, href: "/category/Movies" },
+  { label: "Culture", icon: BookOpen, href: "/category/Culture" },
 ];
 
 const BottomNav = () => {

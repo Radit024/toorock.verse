@@ -21,7 +21,7 @@ import {
   type DbArticle,
 } from "@/lib/api";
 
-const CATEGORIES = ["Anime", "Games", "Esports", "Culture", "Film", "Reviews"];
+const CATEGORIES = ["Anime", "Games", "Esports", "Culture", "Movies", "Reviews"];
 const PAGE_SIZE = 12;
 
 type LogAction = "created" | "updated" | "deleted" | "published" | "unpublished" | "duplicated";

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
 import SectionBlock from "@/components/SectionBlock";
@@ -59,7 +58,6 @@ const Index = () => {
     </Helmet>
     <div className="min-h-screen bg-background">
       <Navbar />
-      <TickerBar />
 
       <PullToRefresh onRefresh={loadArticles}>
         <main className="container py-6">

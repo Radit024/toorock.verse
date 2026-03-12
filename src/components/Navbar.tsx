@@ -1,6 +1,7 @@
 ﻿import { Search, Radio, ChevronRight, Settings, Moon, Sun, ALargeSmall } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import TickerBar from "@/components/TickerBar";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -8,6 +9,7 @@ const navItems = [
   { label: "Games", href: "/category/Games" },
   { label: "Esports", href: "/category/Esports" },
   { label: "Culture", href: "/category/Culture" },
+  { label: "Movies", href: "/category/Movies" },
   { label: "Reviews", href: "/category/Reviews" },
 ];
 
@@ -39,9 +41,12 @@ const Navbar = () => {
   }, [dark]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove("text-size-small", "text-size-medium", "text-size-large");
-    root.classList.add(`text-size-${textSize}`);
+    const fontSizes: Record<TextSize, string> = {
+      small: "87.5%",
+      medium: "100%",
+      large: "125%",
+    };
+    document.documentElement.style.fontSize = fontSizes[textSize];
     localStorage.setItem("text-size", textSize);
   }, [textSize]);
 
@@ -234,6 +239,9 @@ const Navbar = () => {
 
       {/* Accent line */}
       <div className="h-[2px] bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+
+      {/* Ticker bar — inside sticky wrapper so it never gets orphaned when navbar grows */}
+      <TickerBar />
     </nav>
   );
 };

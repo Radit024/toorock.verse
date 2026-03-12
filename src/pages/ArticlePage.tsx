@@ -4,7 +4,6 @@ import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Clock, Share2, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import TickerBar from "@/components/TickerBar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
 import { articles as fallbackArticles } from "@/data/articles";
@@ -101,7 +100,6 @@ const ArticlePage = () => {
     </Helmet>
     <div className="min-h-screen bg-background">
       <Navbar />
-      <TickerBar />
 
       <main className="container py-6">
         <div className="flex items-center gap-2 mb-6 font-meta text-[10px] uppercase tracking-wider">
