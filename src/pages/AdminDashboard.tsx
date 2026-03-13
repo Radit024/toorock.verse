@@ -606,11 +606,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                       else switchView(v as View);
                       setMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider transition-colors ${
-                      view === v
+                    className={`w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider transition-colors ${view === v
                         ? "text-primary bg-primary/8 border-r-2 border-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    }`}
+                      }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 text-left">{label}</span>
@@ -644,9 +643,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                 </div>
                 <button
                   onClick={() => { switchView("profile"); setMenuOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider transition-colors ${
-                    view === "profile" ? "text-primary bg-primary/8 border-r-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                  }`}
+                  className={`w-full flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider transition-colors ${view === "profile" ? "text-primary bg-primary/8 border-r-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    }`}
                 >
                   <UserCircle2 className="h-4 w-4 shrink-0" />
                   Profile
@@ -756,9 +754,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               <button
                 key={v}
                 onClick={() => { if (v === "form") handleNew(); else switchView(v as View); }}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-3 font-meta text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap shrink-0 ${
-                  view === v ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-3 font-meta text-xs uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap shrink-0 ${view === v ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}
