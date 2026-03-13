@@ -43,7 +43,7 @@ const Index = () => {
   const gamesArticles = articles.filter((a) => a.category === "Games");
   const animeArticles = articles.filter((a) => a.category === "Anime");
   const esportsArticles = articles.filter((a) => a.category === "Esports");
-  const cultureArticles = articles.filter((a) => a.category === "Movies" || a.category === "Movies");
+  const cultureArticles = articles.filter((a) => a.category === "Culture" || a.category === "Movies");
 
   return (
     <PageTransition>

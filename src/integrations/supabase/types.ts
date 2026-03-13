@@ -25,6 +25,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_breaking: boolean
+          owner_id: string | null
           published: boolean
           read_time: string
           slug: string
@@ -41,6 +42,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_breaking?: boolean
+          owner_id?: string | null
           published?: boolean
           read_time?: string
           slug: string
@@ -57,20 +59,100 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_breaking?: boolean
+          owner_id?: string | null
           published?: boolean
           read_time?: string
           slug?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "articles_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      article_collaborators: {
+        Row: {
+          id: string
+          article_id: string
+          collaborator_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          collaborator_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          collaborator_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_collaborators_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_collaborators_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_article_collaborator: {
+        Args: {
+          p_article_id: string
+          p_email: string
+        }
+        Returns: undefined
+      }
+      admin_upload_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          display_name: string
+          registered_at: string
+          total_articles: number
+          published_articles: number
+          draft_articles: number
+          last_upload_at: string | null
+        }[]
+      }
+      list_article_collaborators: {
+        Args: {
+          p_article_id: string
+        }
+        Returns: {
+          collaborator_id: string
+          email: string
+          added_at: string
+        }[]
+      }
+      remove_article_collaborator: {
+        Args: {
+          p_article_id: string
+          p_collaborator_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

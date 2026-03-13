@@ -13,10 +13,27 @@ export interface DbArticle {
   author_bio: string;
   read_time: string;
   is_breaking: boolean;
+  owner_id: string | null;
   content: string[];
   published: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface ArticleCollaborator {
+  collaborator_id: string;
+  email: string;
+  added_at: string;
+}
+
+export interface AdminLeaderboardEntry {
+  user_id: string;
+  display_name: string;
+  registered_at: string;
+  total_articles: number;
+  published_articles: number;
+  draft_articles: number;
+  last_upload_at: string | null;
 }
 
 export const fetchPublishedArticles = async (): Promise<DbArticle[]> => {
@@ -30,12 +47,29 @@ export const fetchPublishedArticles = async (): Promise<DbArticle[]> => {
 };
 
 export const fetchAllArticles = async (): Promise<DbArticle[]> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not logged in");
+
+  // To fetch ONLY articles the user owns or collaborates on, we can fetch all they have access to and filter
+  // However, since RLS might allow them to see ALL published articles, we filter locally to be sure
+  // fetching all:
   const { data, error } = await supabase
     .from("articles")
-    .select("*")
+    .select("*, article_collaborators(collaborator_id)")
     .order("created_at", { ascending: false });
+
   if (error) throw new Error(error.message);
-  return (data as DbArticle[]) ?? [];
+
+  let articles = data as (DbArticle & { article_collaborators: any[] })[];
+  
+  // Filter locally: own or collaborated
+  articles = articles.filter(a => {
+    if (a.owner_id === user.id) return true;
+    if (a.article_collaborators && a.article_collaborators.some(c => c.collaborator_id === user.id)) return true;
+    return false;
+  });
+
+  return articles ?? [];
 };
 
 export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null> => {
@@ -50,11 +84,16 @@ export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null
 };
 
 export const createArticle = async (
-  article: Omit<DbArticle, "id" | "created_at" | "updated_at">
+  article: Partial<Omit<DbArticle, "id" | "created_at" | "updated_at">>
 ): Promise<DbArticle> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  const articleData = { ...article, owner_id: user?.id || null } as Record<string, unknown>;
+  // Never trust incoming owner_id from caller.
+  delete articleData.owner_id;
+  articleData.owner_id = user?.id || null;
   const { data, error } = await supabase
     .from("articles")
-    .insert(article)
+    .insert(articleData as any)
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -65,9 +104,13 @@ export const updateArticle = async (
   id: string,
   updates: Partial<Omit<DbArticle, "id" | "created_at" | "updated_at">>
 ): Promise<DbArticle> => {
+  const safeUpdates = { ...updates } as Record<string, unknown>;
+  // Ownership is immutable from frontend updates.
+  delete safeUpdates.owner_id;
+
   const { data, error } = await supabase
     .from("articles")
-    .update(updates)
+    .update(safeUpdates)
     .eq("id", id)
     .select()
     .single();
@@ -78,6 +121,109 @@ export const updateArticle = async (
 export const deleteArticle = async (id: string): Promise<void> => {
   const { error } = await supabase.from("articles").delete().eq("id", id);
   if (error) throw new Error(error.message);
+};
+
+export const fetchArticleCollaborators = async (articleId: string): Promise<ArticleCollaborator[]> => {
+  const { data, error } = await supabase.rpc("list_article_collaborators", {
+    p_article_id: articleId,
+  });
+
+  if (!error) {
+    return (data ?? []) as ArticleCollaborator[];
+  }
+
+  const missingRpc = error.message.includes("list_article_collaborators") ||
+    error.message.includes("schema cache");
+
+  if (!missingRpc) {
+    throw new Error(error.message);
+  }
+
+  // Fallback for projects where DB migration is not applied yet.
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("article_collaborators")
+    .select("collaborator_id, created_at")
+    .eq("article_id", articleId)
+    .order("created_at", { ascending: false });
+
+  if (fallbackError) throw new Error(fallbackError.message);
+
+  return (fallbackData ?? []).map((item) => ({
+    collaborator_id: item.collaborator_id,
+    email: item.collaborator_id,
+    added_at: item.created_at,
+  }));
+};
+
+export const addCollaborator = async (articleId: string, email: string) => {
+  const { error } = await supabase.rpc("add_article_collaborator", {
+    p_article_id: articleId,
+    p_email: email,
+  });
+  if (error) throw new Error(error.message);
+};
+
+export const removeCollaborator = async (articleId: string, collaboratorId: string) => {
+  const { error } = await supabase.rpc("remove_article_collaborator", {
+    p_article_id: articleId,
+    p_collaborator_id: collaboratorId,
+  });
+  if (error) throw new Error(error.message);
+};
+
+export const fetchAdminUploadLeaderboard = async (): Promise<AdminLeaderboardEntry[]> => {
+  const { data, error } = await supabase.rpc("admin_upload_leaderboard");
+  if (!error) {
+    const normalized = (data ?? []).map((row: any) => ({
+      user_id: row.user_id,
+      display_name: row.display_name ?? row.email ?? row.user_id,
+      registered_at: row.registered_at,
+      total_articles: Number(row.total_articles ?? 0),
+      published_articles: Number(row.published_articles ?? 0),
+      draft_articles: Number(row.draft_articles ?? 0),
+      last_upload_at: row.last_upload_at ?? null,
+    }));
+    return normalized as AdminLeaderboardEntry[];
+  }
+
+  const missingRpc = error.message.includes("admin_upload_leaderboard") ||
+    error.message.includes("schema cache");
+
+  if (!missingRpc) {
+    throw new Error(error.message);
+  }
+
+  // Fallback for projects where DB migration is not applied yet.
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw new Error(userError.message);
+  if (!userData.user) return [];
+
+  const { data: articleRows, error: articleError } = await supabase
+    .from("articles")
+    .select("owner_id, published, created_at")
+    .eq("owner_id", userData.user.id);
+
+  if (articleError) throw new Error(articleError.message);
+
+  const rows = articleRows ?? [];
+  const total = rows.length;
+  const published = rows.filter((row) => row.published).length;
+  const draft = total - published;
+  const latest = rows
+    .map((row) => row.created_at)
+    .sort((a, b) => b.localeCompare(a))[0] ?? null;
+
+  return [
+    {
+      user_id: userData.user.id,
+      display_name: (userData.user.user_metadata?.name as string) || (userData.user.email?.split("@")[0] ?? userData.user.id),
+      registered_at: userData.user.created_at,
+      total_articles: total,
+      published_articles: published,
+      draft_articles: draft,
+      last_upload_at: latest,
+    },
+  ];
 };
 
 export const dbToArticle = (db: DbArticle): Article => ({

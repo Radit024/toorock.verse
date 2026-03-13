@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Footer from "@/components/Footer";
 import { useSearchParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -7,6 +7,7 @@ import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
 import { articles as fallbackArticles } from "@/data/articles";
 import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const SearchPage = () => {
@@ -14,15 +15,28 @@ const SearchPage = () => {
   const query = searchParams.get("q") || "";
   const [allArticles, setAllArticles] = useState<Article[]>(fallbackArticles);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const dbArticles = await fetchPublishedArticles();
-        setAllArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
-      } catch {}
-    };
-    load();
+  const loadArticles = useCallback(async () => {
+    try {
+      const dbArticles = await fetchPublishedArticles();
+      setAllArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    loadArticles();
+  }, [loadArticles]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("search-news-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
+        loadArticles();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadArticles]);
 
   const filtered = query.trim()
     ? allArticles.filter(

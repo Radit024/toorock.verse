@@ -5,7 +5,7 @@ import {
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
   ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
-  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User,
+  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User, UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -18,6 +18,10 @@ import {
   createArticle,
   updateArticle,
   deleteArticle,
+  fetchArticleCollaborators,
+  addCollaborator,
+  removeCollaborator,
+  type ArticleCollaborator,
   type DbArticle,
 } from "@/lib/api";
 
@@ -43,6 +47,7 @@ const emptyForm = {
   author_bio: "",
   read_time: "3 min read",
   is_breaking: false,
+  owner_id: null as string | null,
   content: [""],
   published: false,
 };
@@ -113,6 +118,12 @@ const AdminDashboard = () => {
 
 const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [articles, setArticles] = useState<DbArticle[]>([]);
+  const [collaboratorsMap, setCollaboratorsMap] = useState<Record<string, ArticleCollaborator[]>>({});
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [collabArticle, setCollabArticle] = useState<DbArticle | null>(null);
+  const [collabOpen, setCollabOpen] = useState(false);
+  const [collabEmailInput, setCollabEmailInput] = useState("");
+  const [collabLoading, setCollabLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("overview");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -135,6 +146,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return;
+      setCurrentUserId(data.user.id);
       setUserEmail(data.user.email ?? "");
       const m = data.user.user_metadata ?? {};
       setProfile({
@@ -174,6 +186,84 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     ]);
   }, []);
 
+  const isOwner = useCallback((article: DbArticle) => {
+    return !!currentUserId && article.owner_id === currentUserId;
+  }, [currentUserId]);
+
+  const loadCollaborators = useCallback(async (articleId: string) => {
+    const list = await fetchArticleCollaborators(articleId);
+    setCollaboratorsMap((prev) => ({ ...prev, [articleId]: list }));
+  }, []);
+
+  const handleManageCollaborators = async (article: DbArticle) => {
+    if (!isOwner(article)) {
+      toast({ title: "Owner only", description: "Only article owner can manage collaborators.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setCollabArticle(article);
+      setCollabEmailInput("");
+      setCollabOpen(true);
+      setCollabLoading(true);
+      await loadCollaborators(article.id);
+    } catch (e: any) {
+      toast({ title: "Failed to load collaborators", description: e.message, variant: "destructive" });
+    } finally {
+      setCollabLoading(false);
+    }
+  };
+
+  const handleAddCollaborator = async () => {
+    if (!collabArticle) return;
+    const email = collabEmailInput.trim();
+    if (!email) {
+      toast({ title: "Email required", description: "Please input collaborator email.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setCollabLoading(true);
+      await addCollaborator(collabArticle.id, email);
+      await loadCollaborators(collabArticle.id);
+      setCollabEmailInput("");
+      toast({ title: "Collaborator added" });
+    } catch (e: any) {
+      toast({ title: "Failed to add collaborator", description: e.message, variant: "destructive" });
+    } finally {
+      setCollabLoading(false);
+    }
+  };
+
+  const handleRemoveCollaborator = async (collaboratorId: string) => {
+    if (!collabArticle) return;
+    try {
+      setCollabLoading(true);
+      await removeCollaborator(collabArticle.id, collaboratorId);
+      await loadCollaborators(collabArticle.id);
+      toast({ title: "Collaborator removed" });
+    } catch (e: any) {
+      toast({ title: "Failed to remove collaborator", description: e.message, variant: "destructive" });
+    } finally {
+      setCollabLoading(false);
+    }
+  };
+
+  const handleOpenFormCollaborators = async () => {
+    if (!editingId) {
+      toast({ title: "Save article first", description: "You can add collaborators after the article is created." });
+      return;
+    }
+
+    const article = articles.find((a) => a.id === editingId);
+    if (!article) {
+      toast({ title: "Article not found", description: "Please refresh and try again.", variant: "destructive" });
+      return;
+    }
+
+    await handleManageCollaborators(article);
+  };
+
   const markDirty = () => setIsDirty(true);
 
   const switchView = (newView: View) => {
@@ -199,7 +289,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     setRefreshing(false);
   };
 
-  useEffect(() => { loadArticles(); }, []);
+  useEffect(() => {
+    loadArticles();
+  }, []);
 
   // Ctrl+S saves form
   useEffect(() => {
@@ -466,6 +558,74 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     <PageTransition>
       <div className="min-h-screen bg-background">
 
+        {/* ── COLLABORATION MODAL ── */}
+        {collabOpen && collabArticle && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-xl border border-border bg-background">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <div>
+                  <p className="font-heading text-lg tracking-widest text-foreground">COLLABORATION</p>
+                  <p className="font-body text-xs text-muted-foreground line-clamp-1">{collabArticle.title}</p>
+                </div>
+                <button
+                  onClick={() => setCollabOpen(false)}
+                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className="flex gap-2">
+                  <input
+                    value={collabEmailInput}
+                    onChange={(e) => setCollabEmailInput(e.target.value)}
+                    placeholder="admin@email.com"
+                    className="flex-1 bg-background border border-border px-3 py-2 font-body text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddCollaborator}
+                    disabled={collabLoading}
+                    className="font-meta text-xs uppercase tracking-wider"
+                  >
+                    Add
+                  </Button>
+                </div>
+
+                <div className="border border-border">
+                  <div className="px-3 py-2 border-b border-border bg-secondary/40">
+                    <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Collaborators</p>
+                  </div>
+                  <div className="divide-y divide-border max-h-64 overflow-y-auto">
+                    {collabLoading && (
+                      <p className="font-body text-xs text-muted-foreground px-3 py-3">Loading...</p>
+                    )}
+                    {!collabLoading && (collaboratorsMap[collabArticle.id] ?? []).length === 0 && (
+                      <p className="font-body text-xs text-muted-foreground px-3 py-3">No collaborators yet.</p>
+                    )}
+                    {!collabLoading && (collaboratorsMap[collabArticle.id] ?? []).map((collab) => (
+                      <div key={collab.collaborator_id} className="flex items-center justify-between px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="font-body text-sm text-foreground truncate">{collab.email}</p>
+                          <p className="font-meta text-[9px] text-muted-foreground">Added {new Date(collab.added_at).toLocaleDateString("en-GB")}</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveCollaborator(collab.collaborator_id)}
+                          className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── ARTICLE PREVIEW MODAL ── */}
         {previewOpen && (
           <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto">
@@ -637,6 +797,14 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                   <ArrowLeft className="h-4 w-4 shrink-0" />
                   Back to site
                 </Link>
+                <Link
+                  to="/admin/leaderboard"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-5 py-3 font-meta text-sm uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                >
+                  <BarChart3 className="h-4 w-4 shrink-0" />
+                  Leaderboard
+                </Link>
 
                 <div className="border-t border-border mt-3 pt-3 mx-5">
                   <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground mb-2">Account</p>
@@ -702,6 +870,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               </button>
               <Link to="/" className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">
                 <ArrowLeft className="h-3.5 w-3.5" /><span>Back to site</span>
+              </Link>
+              <Link to="/admin/leaderboard" className="hidden sm:flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">
+                <BarChart3 className="h-3.5 w-3.5" /><span>Leaderboard</span>
               </Link>
               {/* Profile dropdown */}
               <div className="relative hidden sm:block">
@@ -882,6 +1053,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                     )}
                   </div>
                 </div>
+
               </div>
 
               {/* Recent articles */}
@@ -916,6 +1088,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                         <button onClick={() => handleDuplicate(a)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Duplicate">
                           <Copy className="h-3.5 w-3.5" />
                         </button>
+                        {isOwner(a) && (
+                          <button onClick={() => handleManageCollaborators(a)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Manage Collaborators">
+                            <UserPlus className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <Link to={`/article/${a.slug}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="View live">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
@@ -1131,6 +1308,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                               <button onClick={() => handleDuplicate(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Duplicate">
                                 <Copy className="h-3.5 w-3.5" />
                               </button>
+                              {isOwner(article) && (
+                                <button onClick={() => handleManageCollaborators(article)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Manage Collaborators">
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                               {article.published && (
                                 <Link to={`/article/${article.slug}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="View live">
                                   <ExternalLink className="h-3.5 w-3.5" />
@@ -1211,6 +1393,15 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleOpenFormCollaborators}
+                    disabled={!editingId}
+                    className="flex items-center gap-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary border border-border hover:border-primary px-2.5 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={editingId ? "Add collaborator" : "Save article first"}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Add Collaborator</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setPreviewOpen(true)}
