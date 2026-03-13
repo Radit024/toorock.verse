@@ -5,7 +5,6 @@ import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
-import { articles as fallbackArticles } from "@/data/articles";
 import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
@@ -13,12 +12,12 @@ import type { Article } from "@/data/articles";
 const CategoryPage = () => {
   const { category } = useParams<{ category: string }>();
   const decodedCategory = decodeURIComponent(category || "");
-  const [allArticles, setAllArticles] = useState<Article[]>(fallbackArticles);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
 
   const loadArticles = useCallback(async () => {
     try {
       const dbArticles = await fetchPublishedArticles();
-      setAllArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
+      setAllArticles(dbArticles.map(dbToArticle));
     } catch {}
   }, []);
 

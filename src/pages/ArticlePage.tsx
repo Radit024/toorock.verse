@@ -6,20 +6,23 @@ import { ArrowLeft, Clock, Share2, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
-import { articles as fallbackArticles } from "@/data/articles";
 import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const ArticlePage = () => {
   const { id } = useParams<{ id: string }>();
-  const [allArticles, setAllArticles] = useState<Article[]>(fallbackArticles);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const loadArticles = useCallback(async () => {
     try {
       const dbArticles = await fetchPublishedArticles();
-      setAllArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
-    } catch {}
+      setAllArticles(dbArticles.map(dbToArticle));
+    } catch {
+      setAllArticles([]);
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -53,6 +56,19 @@ const ArticlePage = () => {
   };
 
   const article = allArticles.find((a) => a.id === id);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-background">
+          <Navbar />
+          <div className="container py-20 text-center">
+            <p className="font-body text-sm text-muted-foreground">Loading article...</p>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (!article) {
     return (

@@ -228,7 +228,7 @@ export const fetchAdminUploadLeaderboard = async (): Promise<AdminLeaderboardEnt
 
 export const dbToArticle = (db: DbArticle): Article => ({
   id: db.slug,
-  image: db.image_url || "/placeholder.svg",
+  image: db.image_url || "",
   title: db.title,
   category: db.category,
   date: formatRelativeDate(db.created_at),

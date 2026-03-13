@@ -7,20 +7,19 @@ import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
 import SectionBlock from "@/components/SectionBlock";
 import PullToRefresh from "@/components/PullToRefresh";
-import { articles as fallbackArticles } from "@/data/articles";
 import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const Index = () => {
-  const [articles, setArticles] = useState<Article[]>(fallbackArticles);
+  const [articles, setArticles] = useState<Article[]>([]);
 
   const loadArticles = useCallback(async () => {
     try {
       const dbArticles = await fetchPublishedArticles();
-      setArticles(dbArticles.length > 0 ? dbArticles.map(dbToArticle) : fallbackArticles);
+      setArticles(dbArticles.map(dbToArticle));
     } catch {
-      setArticles(fallbackArticles);
+      setArticles([]);
     }
   }, []);
 
