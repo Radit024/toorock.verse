@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, ArrowLeft, Zap,
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
   ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
-  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User, UserPlus,
+  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User, UserPlus, Bold, Table2, Italic, Underline, Strikethrough, Code2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -65,14 +65,57 @@ const ACTION_COLOR: Record<LogAction, string> = {
   duplicated: "text-primary",
 };
 
-type BlockType = "text" | "heading" | "subheading" | "quote" | "image";
+type BlockType = "text" | "heading" | "subheading" | "quote" | "image" | "table";
 interface ContentBlock { id: string; type: BlockType; value: string; }
+
+const TABLE_BLOCK_PREFIX = "::table::";
+
+type InlineFormat = "bold" | "italic" | "underline" | "strike" | "code";
+
+const INLINE_WRAPPERS: Record<InlineFormat, { open: string; close: string; sample: string }> = {
+  bold: { open: "**", close: "**", sample: "bold" },
+  italic: { open: "*", close: "*", sample: "italic" },
+  underline: { open: "__", close: "__", sample: "underline" },
+  strike: { open: "~~", close: "~~", sample: "strike" },
+  code: { open: "`", close: "`", sample: "code" },
+};
+
+function parseInlineFormatting(text: string): ReactNode[] {
+  const chunks = text.split(/(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*)/g);
+  return chunks.map((chunk, i) => {
+    if (chunk.startsWith("**") && chunk.endsWith("**") && chunk.length > 4) {
+      return <strong key={i} className="font-semibold text-foreground">{chunk.slice(2, -2)}</strong>;
+    }
+    if (chunk.startsWith("__") && chunk.endsWith("__") && chunk.length > 4) {
+      return <span key={i} className="underline decoration-2 underline-offset-2">{chunk.slice(2, -2)}</span>;
+    }
+    if (chunk.startsWith("~~") && chunk.endsWith("~~") && chunk.length > 4) {
+      return <span key={i} className="line-through opacity-80">{chunk.slice(2, -2)}</span>;
+    }
+    if (chunk.startsWith("`") && chunk.endsWith("`") && chunk.length > 2) {
+      return <code key={i} className="font-mono text-[0.92em] px-1 py-0.5 bg-secondary border border-border">{chunk.slice(1, -1)}</code>;
+    }
+    if (chunk.startsWith("*") && chunk.endsWith("*") && chunk.length > 2) {
+      return <em key={i} className="italic">{chunk.slice(1, -1)}</em>;
+    }
+    return <span key={i}>{chunk}</span>;
+  });
+}
+
+function parseTableRows(raw: string): string[][] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split("|").map((cell) => cell.trim()));
+}
 
 function contentToBlocks(content: string[]): ContentBlock[] {
   const items = content.filter((s) => s !== undefined);
   if (items.length === 0) return [{ id: crypto.randomUUID(), type: "text", value: "" }];
   return items.map((item) => {
     const id = crypto.randomUUID();
+    if (item.startsWith(TABLE_BLOCK_PREFIX)) return { id, type: "table" as BlockType, value: item.slice(TABLE_BLOCK_PREFIX.length) };
     if (item.startsWith("## ")) return { id, type: "heading" as BlockType, value: item.slice(3) };
     if (item.startsWith("### ")) return { id, type: "subheading" as BlockType, value: item.slice(4) };
     if (item.startsWith("> ")) return { id, type: "quote" as BlockType, value: item.slice(2) };
@@ -83,6 +126,7 @@ function contentToBlocks(content: string[]): ContentBlock[] {
 
 function blocksToContent(blockList: ContentBlock[]): string[] {
   return blockList.map((b) => {
+    if (b.type === "table") return `${TABLE_BLOCK_PREFIX}${b.value}`;
     if (b.type === "heading") return `## ${b.value}`;
     if (b.type === "subheading") return `### ${b.value}`;
     if (b.type === "quote") return `> ${b.value}`;
@@ -135,6 +179,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [page, setPage] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
+  const blockEditorRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const [blocks, setBlocks] = useState<ContentBlock[]>([{ id: crypto.randomUUID(), type: "text", value: "" }]);
 
   // profile
@@ -534,6 +579,76 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     markDirty();
   };
 
+  const applyInlineFormat = useCallback((blockId: string, format: InlineFormat) => {
+    const textarea = blockEditorRefs.current[blockId];
+    const block = blocks.find((b) => b.id === blockId);
+    if (!textarea || !block || block.type === "image") return;
+
+    const wrapper = INLINE_WRAPPERS[format];
+
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
+    const source = block.value;
+    const hasSelection = end > start;
+
+    let nextValue = source;
+    let nextStart = start;
+    let nextEnd = end;
+
+    if (hasSelection) {
+      const selected = source.slice(start, end);
+      nextValue = `${source.slice(0, start)}${wrapper.open}${selected}${wrapper.close}${source.slice(end)}`;
+      nextStart = start + wrapper.open.length;
+      nextEnd = end + wrapper.open.length;
+    } else {
+      const insert = `${wrapper.open}${wrapper.sample}${wrapper.close}`;
+      nextValue = `${source.slice(0, start)}${insert}${source.slice(start)}`;
+      nextStart = start + wrapper.open.length;
+      nextEnd = start + wrapper.open.length + wrapper.sample.length;
+    }
+
+    setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, value: nextValue } : b)));
+    markDirty();
+
+    requestAnimationFrame(() => {
+      const el = blockEditorRefs.current[blockId];
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(nextStart, nextEnd);
+    });
+  }, [blocks, markDirty]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const active = document.activeElement;
+      if (!(active instanceof HTMLTextAreaElement)) return;
+      const blockId = active.dataset.blockId;
+      if (!blockId) return;
+
+      const key = e.key.toLowerCase();
+      if (key === "b") {
+        e.preventDefault();
+        applyInlineFormat(blockId, "bold");
+      } else if (key === "i") {
+        e.preventDefault();
+        applyInlineFormat(blockId, "italic");
+      } else if (key === "u") {
+        e.preventDefault();
+        applyInlineFormat(blockId, "underline");
+      } else if (e.shiftKey && key === "x") {
+        e.preventDefault();
+        applyInlineFormat(blockId, "strike");
+      } else if (e.shiftKey && key === "k") {
+        e.preventDefault();
+        applyInlineFormat(blockId, "code");
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [applyInlineFormat]);
+
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortField(field); setSortDir("desc"); }
@@ -679,16 +794,47 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                   if (block.type === "image") return (
                     <img key={block.id} src={block.value} alt="" className="w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   );
+                  if (block.type === "table") {
+                    const rows = parseTableRows(block.value);
+                    if (rows.length === 0) return null;
+                    const [head, ...body] = rows;
+                    return (
+                      <div key={block.id} className="overflow-x-auto border border-border">
+                        <table className="w-full border-collapse">
+                          <thead className="bg-secondary/40">
+                            <tr>
+                              {head.map((cell, ci) => (
+                                <th key={ci} className="border border-border px-3 py-2 text-left font-meta text-[10px] uppercase tracking-wider text-foreground">
+                                  {parseInlineFormatting(cell)}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {body.map((row, ri) => (
+                              <tr key={ri} className="hover:bg-secondary/20">
+                                {head.map((_, ci) => (
+                                  <td key={ci} className="border border-border px-3 py-2 font-body text-sm text-foreground/90">
+                                    {parseInlineFormatting(row[ci] ?? "")}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  }
                   if (block.type === "heading") return (
-                    <h2 key={block.id} className="font-heading text-3xl text-foreground tracking-widest leading-tight">{block.value}</h2>
+                    <h2 key={block.id} className="font-heading text-3xl text-foreground tracking-widest leading-tight">{parseInlineFormatting(block.value)}</h2>
                   );
                   if (block.type === "subheading") return (
-                    <h3 key={block.id} className="font-heading text-xl text-foreground tracking-widest leading-tight">{block.value}</h3>
+                    <h3 key={block.id} className="font-heading text-xl text-foreground tracking-widest leading-tight">{parseInlineFormatting(block.value)}</h3>
                   );
                   if (block.type === "quote") return (
-                    <blockquote key={block.id} className="border-l-2 border-primary pl-4 font-body text-base text-muted-foreground italic leading-relaxed">{block.value}</blockquote>
+                    <blockquote key={block.id} className="border-l-2 border-primary pl-4 font-body text-base text-muted-foreground italic leading-relaxed">{parseInlineFormatting(block.value)}</blockquote>
                   );
-                  return <p key={block.id} className="font-body text-base text-foreground leading-relaxed">{block.value}</p>;
+                  return <p key={block.id} className="font-body text-base text-foreground leading-relaxed">{parseInlineFormatting(block.value)}</p>;
                 })}
               </div>
 
@@ -1586,6 +1732,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                         <AlignLeft className="h-3 w-3" /> {wordCount.total} words · {blocks.length} block{blocks.length !== 1 ? "s" : ""}
                       </span>
                     </div>
+                    <div className="px-4 py-2 border-b border-border bg-secondary/20 font-meta text-[9px] uppercase tracking-wider text-muted-foreground">
+                      Shortcuts: Ctrl+B Bold · Ctrl+I Italic · Ctrl+U Underline · Ctrl+Shift+X Strike · Ctrl+Shift+K Code
+                    </div>
                     <div className="p-4 space-y-2">
                       {blocks.map((block, i) => (
                         <div key={block.id} className="border border-border hover:border-primary/40 transition-colors">
@@ -1606,11 +1755,54 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                               <option value="heading">H1 Heading</option>
                               <option value="subheading">H2 Subheading</option>
                               <option value="quote">❝ Quote</option>
+                              <option value="table">▦ Table</option>
                               <option value="image">⬛ Image</option>
                             </select>
                             <div className="flex items-center gap-0.5">
                               {block.type !== "image" && wordCount.perBlock[i] > 0 && (
                                 <span className="font-meta text-[9px] text-muted-foreground mr-2">{wordCount.perBlock[i]}w</span>
+                              )}
+                              {block.type !== "image" && (
+                                <button
+                                  type="button"
+                                  onClick={() => applyInlineFormat(block.id, "bold")}
+                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                  title="Bold (**text**)"
+                                >
+                                  <Bold className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => applyInlineFormat(block.id, "italic")}
+                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                  title="Italic (*text*)"
+                                >
+                                  <Italic className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => applyInlineFormat(block.id, "underline")}
+                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                  title="Underline (__text__)"
+                                >
+                                  <Underline className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => applyInlineFormat(block.id, "strike")}
+                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                  title="Strikethrough (~~text~~)"
+                                >
+                                  <Strikethrough className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => applyInlineFormat(block.id, "code")}
+                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                  title="Code (`text`)"
+                                >
+                                  <Code2 className="h-3 w-3" />
+                                </button>
                               )}
                               <button type="button" onClick={() => moveBlock(i, -1)} disabled={i === 0} className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" title="Move up">
                                 <ArrowUp className="h-3 w-3" />
@@ -1638,8 +1830,23 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                 }}
                               />
                             </div>
+                          ) : block.type === "table" ? (
+                            <div className="p-3 space-y-2">
+                              <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground">Use separator "|" per column and new line per row</p>
+                              <textarea
+                                ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                                data-block-id={block.id}
+                                value={block.value}
+                                onChange={(e) => updateBlock(i, e.target.value)}
+                                rows={5}
+                                className="w-full bg-background border border-border px-3 py-2.5 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary resize-y"
+                                placeholder={"Category | Total | Published\nAnime | 12 | 10\nGames | 8 | 7"}
+                              />
+                            </div>
                           ) : block.type === "heading" ? (
                             <textarea
+                              ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                              data-block-id={block.id}
                               value={block.value}
                               onChange={(e) => updateBlock(i, e.target.value)}
                               rows={2}
@@ -1648,6 +1855,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             />
                           ) : block.type === "subheading" ? (
                             <textarea
+                              ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                              data-block-id={block.id}
                               value={block.value}
                               onChange={(e) => updateBlock(i, e.target.value)}
                               rows={2}
@@ -1658,6 +1867,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             <div className="flex">
                               <div className="w-1 bg-primary/60 shrink-0 m-2 mr-0 rounded-sm" />
                               <textarea
+                                ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                                data-block-id={block.id}
                                 value={block.value}
                                 onChange={(e) => updateBlock(i, e.target.value)}
                                 rows={3}
@@ -1667,6 +1878,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             </div>
                           ) : (
                             <textarea
+                              ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                              data-block-id={block.id}
                               value={block.value}
                               onChange={(e) => updateBlock(i, e.target.value)}
                               rows={4}
@@ -1689,6 +1902,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                         </button>
                         <button type="button" onClick={() => addBlock("quote")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
                           <Quote className="h-3.5 w-3.5" /> Quote
+                        </button>
+                        <button type="button" onClick={() => addBlock("table")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <Table2 className="h-3.5 w-3.5" /> Table
                         </button>
                         <button type="button" onClick={() => addBlock("image")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
                           <ImageIcon className="h-3.5 w-3.5" /> Image

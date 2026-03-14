@@ -9,6 +9,8 @@ interface TickerItem {
   isBreaking: boolean;
 }
 
+const LATEST_BROWN_CLASS = "text-[#8B5E3C]";
+
 const FALLBACK: TickerItem[] = [
   { id: "f1", text: "Welcome to ToRock Verse — Your pop-culture intelligence hub", isBreaking: false },
   { id: "f2", text: "Coverage across Games · Anime · Esports · Film", isBreaking: false },
@@ -27,7 +29,13 @@ const TickerBar = () => {
         ...articles.filter((a) => a.is_breaking),
         ...articles.filter((a) => !a.is_breaking),
       ].slice(0, 20);
-      setItems(sorted.map((a) => ({ id: a.id, text: a.title, isBreaking: a.is_breaking })));
+      setItems(
+        sorted.map((a) => ({
+          id: a.slug || a.id,
+          text: a.title,
+          isBreaking: a.is_breaking,
+        }))
+      );
     } catch {
       setItems(FALLBACK);
     }
@@ -62,7 +70,13 @@ const TickerBar = () => {
                 onClick={() => navigate(`/article/${item.id}`)}
                 className="font-body text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
               >
-                <span className={`mr-2 ${item.isBreaking ? "text-destructive" : "text-primary"}`}>■</span>
+                <span
+                  className={`mr-2 font-meta text-[9px] uppercase tracking-wider ${
+                    item.isBreaking ? "text-destructive" : LATEST_BROWN_CLASS
+                  }`}
+                >
+                  {item.isBreaking ? "TRENDING" : "LATEST"}
+                </span>
                 {item.text}
               </span>
             ))}

@@ -10,6 +10,38 @@ import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
+const TABLE_BLOCK_PREFIX = "::table::";
+
+function renderInlineBold(text: string) {
+  const chunks = text.split(/(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*)/g);
+  return chunks.map((chunk, i) => {
+    if (chunk.startsWith("**") && chunk.endsWith("**") && chunk.length > 4) {
+      return <strong key={i} className="font-semibold text-foreground">{chunk.slice(2, -2)}</strong>;
+    }
+    if (chunk.startsWith("__") && chunk.endsWith("__") && chunk.length > 4) {
+      return <span key={i} className="underline decoration-2 underline-offset-2">{chunk.slice(2, -2)}</span>;
+    }
+    if (chunk.startsWith("~~") && chunk.endsWith("~~") && chunk.length > 4) {
+      return <span key={i} className="line-through opacity-80">{chunk.slice(2, -2)}</span>;
+    }
+    if (chunk.startsWith("`") && chunk.endsWith("`") && chunk.length > 2) {
+      return <code key={i} className="font-mono text-[0.92em] px-1 py-0.5 bg-secondary border border-border">{chunk.slice(1, -1)}</code>;
+    }
+    if (chunk.startsWith("*") && chunk.endsWith("*") && chunk.length > 2) {
+      return <em key={i} className="italic">{chunk.slice(1, -1)}</em>;
+    }
+    return <span key={i}>{chunk}</span>;
+  });
+}
+
+function parseTableRows(raw: string): string[][] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split("|").map((cell) => cell.trim()));
+}
+
 const ArticlePage = () => {
   const { id } = useParams<{ id: string }>();
   const [allArticles, setAllArticles] = useState<Article[]>([]);
@@ -191,6 +223,7 @@ const ArticlePage = () => {
             <div className="space-y-5 mb-12">
               {article.content.map((item, i) => {
                 const isImage = item.startsWith("http://") || item.startsWith("https://");
+                const isTable = item.startsWith(TABLE_BLOCK_PREFIX);
                 if (isImage) {
                   return (
                     <figure key={i} className="my-6">
@@ -202,10 +235,43 @@ const ArticlePage = () => {
                     </figure>
                   );
                 }
+
+                if (isTable) {
+                  const rows = parseTableRows(item.slice(TABLE_BLOCK_PREFIX.length));
+                  if (rows.length === 0) return null;
+                  const [head, ...body] = rows;
+                  return (
+                    <div key={i} className="overflow-x-auto border border-border">
+                      <table className="w-full border-collapse">
+                        <thead className="bg-secondary/40">
+                          <tr>
+                            {head.map((cell, ci) => (
+                              <th key={ci} className="border border-border px-3 py-2 text-left font-meta text-[10px] uppercase tracking-wider text-foreground">
+                                {renderInlineBold(cell)}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {body.map((row, ri) => (
+                            <tr key={ri} className="hover:bg-secondary/20">
+                              {head.map((_, ci) => (
+                                <td key={ci} className="border border-border px-3 py-2 font-body text-sm text-foreground/90">
+                                  {renderInlineBold(row[ci] ?? "")}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                }
+
                 return (
                   <p key={i} className="font-body text-base text-foreground/90 leading-relaxed">
-                    {i === 0 && <span className="font-heading text-4xl text-primary float-left mr-2 mt-1 leading-none">{item.charAt(0)}</span>}
-                    {i === 0 ? item.slice(1) : item}
+                    {i === 0 && /^[A-Za-z0-9]/.test(item.charAt(0)) && <span className="font-heading text-4xl text-primary float-left mr-2 mt-1 leading-none">{item.charAt(0)}</span>}
+                    {i === 0 && /^[A-Za-z0-9]/.test(item.charAt(0)) ? renderInlineBold(item.slice(1)) : renderInlineBold(item)}
                   </p>
                 );
               })}

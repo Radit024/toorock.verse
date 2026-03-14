@@ -36,6 +36,14 @@ export interface AdminLeaderboardEntry {
   last_upload_at: string | null;
 }
 
+export interface AdminUploaderCategoryOverviewEntry {
+  category: string;
+  total_articles: number;
+  published_articles: number;
+  draft_articles: number;
+  last_upload_at: string | null;
+}
+
 export const fetchPublishedArticles = async (): Promise<DbArticle[]> => {
   const { data, error } = await supabase
     .from("articles")
@@ -183,7 +191,7 @@ export const fetchAdminUploadLeaderboard = async (): Promise<AdminLeaderboardEnt
       draft_articles: Number(row.draft_articles ?? 0),
       last_upload_at: row.last_upload_at ?? null,
     }));
-    return normalized as AdminLeaderboardEntry[];
+    return sortLeaderboardRows(normalized as AdminLeaderboardEntry[]);
   }
 
   const missingRpc = error.message.includes("admin_upload_leaderboard") ||
@@ -194,37 +202,132 @@ export const fetchAdminUploadLeaderboard = async (): Promise<AdminLeaderboardEnt
   }
 
   // Fallback for projects where DB migration is not applied yet.
+  // We aggregate from visible articles so leaderboard still syncs across accounts
+  // (at least for records current user is allowed to read by RLS).
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(userError.message);
   if (!userData.user) return [];
 
   const { data: articleRows, error: articleError } = await supabase
     .from("articles")
-    .select("owner_id, published, created_at")
-    .eq("owner_id", userData.user.id);
+    .select("owner_id, published, created_at, author_name");
 
   if (articleError) throw new Error(articleError.message);
 
-  const rows = articleRows ?? [];
-  const total = rows.length;
-  const published = rows.filter((row) => row.published).length;
-  const draft = total - published;
-  const latest = rows
-    .map((row) => row.created_at)
-    .sort((a, b) => b.localeCompare(a))[0] ?? null;
+  type FallbackArticleRow = {
+    owner_id: string | null;
+    published: boolean;
+    created_at: string;
+    author_name: string | null;
+  };
 
-  return [
-    {
+  const grouped = new Map<string, {
+    user_id: string;
+    display_name: string;
+    registered_at: string;
+    total_articles: number;
+    published_articles: number;
+    draft_articles: number;
+    last_upload_at: string | null;
+  }>();
+
+  for (const row of (articleRows ?? []) as FallbackArticleRow[]) {
+    if (!row.owner_id) continue;
+    const existing = grouped.get(row.owner_id);
+    const inferredDisplay = row.author_name?.trim() || `Editor ${row.owner_id.slice(0, 8)}`;
+
+    if (!existing) {
+      grouped.set(row.owner_id, {
+        user_id: row.owner_id,
+        display_name: row.owner_id === userData.user.id
+          ? ((userData.user.user_metadata?.name as string) || (userData.user.email?.split("@")[0] ?? inferredDisplay))
+          : inferredDisplay,
+        registered_at: row.owner_id === userData.user.id ? userData.user.created_at : row.created_at,
+        total_articles: 1,
+        published_articles: row.published ? 1 : 0,
+        draft_articles: row.published ? 0 : 1,
+        last_upload_at: row.created_at,
+      });
+      continue;
+    }
+
+    existing.total_articles += 1;
+    if (row.published) existing.published_articles += 1;
+    else existing.draft_articles += 1;
+    if (!existing.last_upload_at || row.created_at > existing.last_upload_at) {
+      existing.last_upload_at = row.created_at;
+    }
+  }
+
+  if (!grouped.has(userData.user.id)) {
+    grouped.set(userData.user.id, {
       user_id: userData.user.id,
       display_name: (userData.user.user_metadata?.name as string) || (userData.user.email?.split("@")[0] ?? userData.user.id),
       registered_at: userData.user.created_at,
-      total_articles: total,
-      published_articles: published,
-      draft_articles: draft,
-      last_upload_at: latest,
-    },
-  ];
+      total_articles: 0,
+      published_articles: 0,
+      draft_articles: 0,
+      last_upload_at: null,
+    });
+  }
+
+  return sortLeaderboardRows(Array.from(grouped.values()));
 };
+
+export const fetchAdminUploaderCategoryOverview = async (userId: string): Promise<AdminUploaderCategoryOverviewEntry[]> => {
+  const { data, error } = await supabase
+    .from("articles")
+    .select("category, published, created_at")
+    .eq("owner_id", userId);
+
+  if (error) throw new Error(error.message);
+
+  type Row = {
+    category: string | null;
+    published: boolean;
+    created_at: string;
+  };
+
+  const grouped = new Map<string, AdminUploaderCategoryOverviewEntry>();
+
+  for (const row of (data ?? []) as Row[]) {
+    const category = row.category?.trim() || "Uncategorized";
+    const current = grouped.get(category);
+    if (!current) {
+      grouped.set(category, {
+        category,
+        total_articles: 1,
+        published_articles: row.published ? 1 : 0,
+        draft_articles: row.published ? 0 : 1,
+        last_upload_at: row.created_at,
+      });
+      continue;
+    }
+
+    current.total_articles += 1;
+    if (row.published) current.published_articles += 1;
+    else current.draft_articles += 1;
+    if (!current.last_upload_at || row.created_at > current.last_upload_at) {
+      current.last_upload_at = row.created_at;
+    }
+  }
+
+  return [...grouped.values()].sort((a, b) => {
+    if (b.total_articles !== a.total_articles) return b.total_articles - a.total_articles;
+    if (b.published_articles !== a.published_articles) return b.published_articles - a.published_articles;
+    if ((b.last_upload_at ?? "") !== (a.last_upload_at ?? "")) return (b.last_upload_at ?? "").localeCompare(a.last_upload_at ?? "");
+    return a.category.localeCompare(b.category);
+  });
+};
+
+function sortLeaderboardRows(rows: AdminLeaderboardEntry[]): AdminLeaderboardEntry[] {
+  return [...rows].sort((a, b) => {
+    if (b.total_articles !== a.total_articles) return b.total_articles - a.total_articles;
+    if (b.published_articles !== a.published_articles) return b.published_articles - a.published_articles;
+    if ((b.last_upload_at ?? "") !== (a.last_upload_at ?? "")) return (b.last_upload_at ?? "").localeCompare(a.last_upload_at ?? "");
+    return (a.registered_at ?? "").localeCompare(b.registered_at ?? "");
+  });
+}
 
 export const dbToArticle = (db: DbArticle): Article => ({
   id: db.slug,

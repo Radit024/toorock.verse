@@ -112,7 +112,12 @@ const AdminLeaderboard = () => {
             ) : (
               <div className="divide-y divide-border">
                 {rows.map((row, i) => (
-                  <div key={row.user_id} className="grid grid-cols-[50px_1fr_80px_90px] items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors">
+                  <Link
+                    key={row.user_id}
+                    to={`/admin/leaderboard/${row.user_id}`}
+                    state={{ row, rank: i + 1 }}
+                    className="grid grid-cols-[50px_1fr_80px_90px] items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors"
+                  >
                     <div className="flex items-center gap-1.5">
                       {i === 0 && <Crown className="h-4 w-4 text-primary" />}
                       <span className={`font-heading text-lg ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>
@@ -134,7 +139,7 @@ const AdminLeaderboard = () => {
                       <p className="font-heading text-lg text-green-500">{row.published_articles}</p>
                       <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground">Published</p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

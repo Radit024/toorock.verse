@@ -13,6 +13,7 @@ import CategoryPage from "./pages/CategoryPage.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import AdminLeaderboard from "./pages/AdminLeaderboard.tsx";
+import AdminUploaderOverview from "./pages/AdminUploaderOverview.tsx";
 import AdminLogin from "./pages/AdminLogin.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -30,6 +31,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/leaderboard" element={<AdminLeaderboard />} />
+        <Route path="/admin/leaderboard/:userId" element={<AdminUploaderOverview />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
