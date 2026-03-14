@@ -431,6 +431,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       author_bio: article.author_bio ?? "",
       read_time: article.read_time,
       is_breaking: article.is_breaking,
+      owner_id: article.owner_id,
       content: article.content.length > 0 ? article.content : [""],
       published: article.published,
     });
@@ -455,6 +456,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       author_bio: article.author_bio ?? "",
       read_time: article.read_time,
       is_breaking: false,
+      owner_id: article.owner_id,
       content: [...article.content],
       published: false,
     });
@@ -1763,46 +1765,48 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                 <span className="font-meta text-[9px] text-muted-foreground mr-2">{wordCount.perBlock[i]}w</span>
                               )}
                               {block.type !== "image" && (
-                                <button
-                                  type="button"
-                                  onClick={() => applyInlineFormat(block.id, "bold")}
-                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                  title="Bold (**text**)"
-                                >
-                                  <Bold className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => applyInlineFormat(block.id, "italic")}
-                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                  title="Italic (*text*)"
-                                >
-                                  <Italic className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => applyInlineFormat(block.id, "underline")}
-                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                  title="Underline (__text__)"
-                                >
-                                  <Underline className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => applyInlineFormat(block.id, "strike")}
-                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                  title="Strikethrough (~~text~~)"
-                                >
-                                  <Strikethrough className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => applyInlineFormat(block.id, "code")}
-                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                  title="Code (`text`)"
-                                >
-                                  <Code2 className="h-3 w-3" />
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyInlineFormat(block.id, "bold")}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                    title="Bold (**text**)"
+                                  >
+                                    <Bold className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyInlineFormat(block.id, "italic")}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                    title="Italic (*text*)"
+                                  >
+                                    <Italic className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyInlineFormat(block.id, "underline")}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                    title="Underline (__text__)"
+                                  >
+                                    <Underline className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyInlineFormat(block.id, "strike")}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                    title="Strikethrough (~~text~~)"
+                                  >
+                                    <Strikethrough className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyInlineFormat(block.id, "code")}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                    title="Code (`text`)"
+                                  >
+                                    <Code2 className="h-3 w-3" />
+                                  </button>
+                                </>
                               )}
                               <button type="button" onClick={() => moveBlock(i, -1)} disabled={i === 0} className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" title="Move up">
                                 <ArrowUp className="h-3 w-3" />
