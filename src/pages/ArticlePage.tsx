@@ -168,7 +168,12 @@ const ArticlePage = () => {
         <div className="flex items-center gap-2 mb-6 font-meta text-[10px] uppercase tracking-wider">
           <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">ToRock Verse</Link>
           <span className="text-muted-foreground">/</span>
-          <span className="text-muted-foreground">{article.category}</span>
+          <Link
+            to={`/category/${encodeURIComponent(article.category)}`}
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
+            {article.category}
+          </Link>
           <span className="text-muted-foreground">/</span>
           <span className="text-foreground">Article</span>
         </div>
