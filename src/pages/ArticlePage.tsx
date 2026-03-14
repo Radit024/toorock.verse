@@ -231,6 +231,10 @@ const ArticlePage = () => {
                 const isImage = item.startsWith("http://") || item.startsWith("https://");
                 const isTable = item.startsWith(TABLE_BLOCK_PREFIX);
                 const isBullets = item.startsWith(BULLETS_BLOCK_PREFIX);
+                const isSubheading = item.startsWith("### ");
+                const isHeading = item.startsWith("## ");
+                const isQuote = item.startsWith("> ");
+
                 if (isImage) {
                   return (
                     <figure key={i} className="my-6">
@@ -292,6 +296,30 @@ const ArticlePage = () => {
                         </li>
                       ))}
                     </ul>
+                  );
+                }
+
+                if (isSubheading) {
+                  return (
+                    <h3 key={i} className="font-heading text-2xl md:text-3xl text-foreground tracking-wider leading-tight mt-2">
+                      {renderInlineBold(item.slice(4))}
+                    </h3>
+                  );
+                }
+
+                if (isHeading) {
+                  return (
+                    <h2 key={i} className="font-heading text-3xl md:text-4xl text-foreground tracking-widest leading-tight mt-3">
+                      {renderInlineBold(item.slice(3))}
+                    </h2>
+                  );
+                }
+
+                if (isQuote) {
+                  return (
+                    <blockquote key={i} className="border-l-2 border-primary pl-4 font-body text-base text-muted-foreground italic leading-relaxed">
+                      {renderInlineBold(item.slice(2))}
+                    </blockquote>
                   );
                 }
 
