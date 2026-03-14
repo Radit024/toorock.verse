@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const TABLE_BLOCK_PREFIX = "::table::";
+const BULLETS_BLOCK_PREFIX = "::bullets::";
 
 function renderInlineBold(text: string) {
   const chunks = text.split(/(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*)/g);
@@ -224,6 +225,7 @@ const ArticlePage = () => {
               {article.content.map((item, i) => {
                 const isImage = item.startsWith("http://") || item.startsWith("https://");
                 const isTable = item.startsWith(TABLE_BLOCK_PREFIX);
+                const isBullets = item.startsWith(BULLETS_BLOCK_PREFIX);
                 if (isImage) {
                   return (
                     <figure key={i} className="my-6">
@@ -265,6 +267,26 @@ const ArticlePage = () => {
                         </tbody>
                       </table>
                     </div>
+                  );
+                }
+
+                if (isBullets) {
+                  const points = item
+                    .slice(BULLETS_BLOCK_PREFIX.length)
+                    .split("\n")
+                    .map((line) => line.replace(/^\s*[-*]\s?/, "").trim())
+                    .filter(Boolean);
+
+                  if (points.length === 0) return null;
+
+                  return (
+                    <ul key={i} className="list-disc pl-6 space-y-1">
+                      {points.map((point, pi) => (
+                        <li key={pi} className="font-body text-base text-foreground/90 leading-relaxed">
+                          {renderInlineBold(point)}
+                        </li>
+                      ))}
+                    </ul>
                   );
                 }
 

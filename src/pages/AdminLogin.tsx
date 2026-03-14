@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Loader2, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminLogin = () => {
@@ -38,7 +39,7 @@ const AdminLogin = () => {
       <div className="min-h-screen bg-background flex flex-col">
         {/* Top bar */}
         <header className="border-b border-border">
-          <div className="container flex items-center h-14">
+          <div className="container flex items-center justify-between h-14">
             <Link
               to="/"
               className="flex items-center gap-2 font-meta text-[11px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
@@ -46,6 +47,7 @@ const AdminLogin = () => {
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to site
             </Link>
+            <ThemeToggle />
           </div>
         </header>
 

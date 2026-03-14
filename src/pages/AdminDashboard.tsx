@@ -5,12 +5,13 @@ import {
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
   ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
-  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User, UserPlus, Bold, Table2, Italic, Underline, Strikethrough, Code2,
+  Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User, UserPlus, Bold, Table2, Italic, Underline, Strikethrough, Code2, List, GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import PageTransition from "@/components/PageTransition";
+import ThemeToggle from "@/components/ThemeToggle";
 import ImageUpload from "@/components/ImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -21,6 +22,7 @@ import {
   fetchArticleCollaborators,
   addCollaborator,
   removeCollaborator,
+  deleteStorageFilesByUrls,
   type ArticleCollaborator,
   type DbArticle,
 } from "@/lib/api";
@@ -65,10 +67,12 @@ const ACTION_COLOR: Record<LogAction, string> = {
   duplicated: "text-primary",
 };
 
-type BlockType = "text" | "heading" | "subheading" | "quote" | "image" | "table";
+type BlockType = "text" | "heading" | "subheading" | "quote" | "image" | "table" | "bullets";
 interface ContentBlock { id: string; type: BlockType; value: string; }
 
 const TABLE_BLOCK_PREFIX = "::table::";
+const BULLETS_BLOCK_PREFIX = "::bullets::";
+const BLOCK_HISTORY_LIMIT = 80;
 
 type InlineFormat = "bold" | "italic" | "underline" | "strike" | "code";
 
@@ -81,24 +85,32 @@ const INLINE_WRAPPERS: Record<InlineFormat, { open: string; close: string; sampl
 };
 
 function parseInlineFormatting(text: string): ReactNode[] {
+  const withLineBreaks = (value: string, keyPrefix: string): ReactNode[] => {
+    const lines = value.split("\n");
+    return lines.flatMap((line, idx) => {
+      if (idx === 0) return [line];
+      return [<br key={`${keyPrefix}-br-${idx}`} />, line];
+    });
+  };
+
   const chunks = text.split(/(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*)/g);
   return chunks.map((chunk, i) => {
     if (chunk.startsWith("**") && chunk.endsWith("**") && chunk.length > 4) {
-      return <strong key={i} className="font-semibold text-foreground">{chunk.slice(2, -2)}</strong>;
+      return <strong key={i} className="font-semibold text-foreground">{withLineBreaks(chunk.slice(2, -2), `b-${i}`)}</strong>;
     }
     if (chunk.startsWith("__") && chunk.endsWith("__") && chunk.length > 4) {
-      return <span key={i} className="underline decoration-2 underline-offset-2">{chunk.slice(2, -2)}</span>;
+      return <span key={i} className="underline decoration-2 underline-offset-2">{withLineBreaks(chunk.slice(2, -2), `u-${i}`)}</span>;
     }
     if (chunk.startsWith("~~") && chunk.endsWith("~~") && chunk.length > 4) {
-      return <span key={i} className="line-through opacity-80">{chunk.slice(2, -2)}</span>;
+      return <span key={i} className="line-through opacity-80">{withLineBreaks(chunk.slice(2, -2), `s-${i}`)}</span>;
     }
     if (chunk.startsWith("`") && chunk.endsWith("`") && chunk.length > 2) {
-      return <code key={i} className="font-mono text-[0.92em] px-1 py-0.5 bg-secondary border border-border">{chunk.slice(1, -1)}</code>;
+      return <code key={i} className="font-mono text-[0.92em] px-1 py-0.5 bg-secondary border border-border">{withLineBreaks(chunk.slice(1, -1), `c-${i}`)}</code>;
     }
     if (chunk.startsWith("*") && chunk.endsWith("*") && chunk.length > 2) {
-      return <em key={i} className="italic">{chunk.slice(1, -1)}</em>;
+      return <em key={i} className="italic">{withLineBreaks(chunk.slice(1, -1), `i-${i}`)}</em>;
     }
-    return <span key={i}>{chunk}</span>;
+    return <span key={i}>{withLineBreaks(chunk, `p-${i}`)}</span>;
   });
 }
 
@@ -116,6 +128,7 @@ function contentToBlocks(content: string[]): ContentBlock[] {
   return items.map((item) => {
     const id = crypto.randomUUID();
     if (item.startsWith(TABLE_BLOCK_PREFIX)) return { id, type: "table" as BlockType, value: item.slice(TABLE_BLOCK_PREFIX.length) };
+    if (item.startsWith(BULLETS_BLOCK_PREFIX)) return { id, type: "bullets" as BlockType, value: item.slice(BULLETS_BLOCK_PREFIX.length) };
     if (item.startsWith("## ")) return { id, type: "heading" as BlockType, value: item.slice(3) };
     if (item.startsWith("### ")) return { id, type: "subheading" as BlockType, value: item.slice(4) };
     if (item.startsWith("> ")) return { id, type: "quote" as BlockType, value: item.slice(2) };
@@ -127,11 +140,16 @@ function contentToBlocks(content: string[]): ContentBlock[] {
 function blocksToContent(blockList: ContentBlock[]): string[] {
   return blockList.map((b) => {
     if (b.type === "table") return `${TABLE_BLOCK_PREFIX}${b.value}`;
+    if (b.type === "bullets") return `${BULLETS_BLOCK_PREFIX}${b.value}`;
     if (b.type === "heading") return `## ${b.value}`;
     if (b.type === "subheading") return `### ${b.value}`;
     if (b.type === "quote") return `> ${b.value}`;
     return b.value;
   }).filter((s) => s.trim() !== "");
+}
+
+function cloneBlocks(blockList: ContentBlock[]): ContentBlock[] {
+  return blockList.map((b) => ({ ...b }));
 }
 
 const AdminDashboard = () => {
@@ -180,7 +198,12 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [page, setPage] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
   const blockEditorRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const blockPreviewRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const draggedBlockIdRef = useRef<string | null>(null);
+  const sessionUploadedImageUrlsRef = useRef<Set<string>>(new Set());
   const [blocks, setBlocks] = useState<ContentBlock[]>([{ id: crypto.randomUUID(), type: "text", value: "" }]);
+  const blockHistoryRef = useRef<{ undo: ContentBlock[][]; redo: ContentBlock[][] }>({ undo: [], redo: [] });
+  const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
 
   // profile
   const [profileOpen, setProfileOpen] = useState(false);
@@ -311,9 +334,40 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
 
   const markDirty = () => setIsDirty(true);
 
+  const registerUploadedImage = useCallback((url: string) => {
+    if (!url) return;
+    sessionUploadedImageUrlsRef.current.add(url);
+  }, []);
+
+  const extractImageUrlsFromBlocks = useCallback((blockList: ContentBlock[]) => {
+    return blockList
+      .filter((b) => b.type === "image")
+      .map((b) => b.value)
+      .filter((url) => /^https?:\/\//.test(url));
+  }, []);
+
+  const extractImageUrlsFromArticle = useCallback((article: DbArticle) => {
+    const cover = article.image_url ? [article.image_url] : [];
+    const body = (article.content ?? []).filter((item) => /^https?:\/\//.test(item));
+    return [...cover, ...body];
+  }, []);
+
+  const cleanupTemporaryUploads = useCallback(async () => {
+    const urls = Array.from(sessionUploadedImageUrlsRef.current);
+    if (urls.length === 0) return;
+    try {
+      await deleteStorageFilesByUrls(urls);
+    } catch (err) {
+      console.error("[AdminDashboard] failed to cleanup temporary uploads:", err);
+    } finally {
+      sessionUploadedImageUrlsRef.current.clear();
+    }
+  }, []);
+
   const switchView = (newView: View) => {
     if (view === "form" && isDirty) {
       if (!confirm("You have unsaved changes. Leave anyway?")) return;
+      void cleanupTemporaryUploads();
     }
     setIsDirty(false);
     setView(newView);
@@ -411,6 +465,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       author_bio: profile.bio,
     });
     setBlocks([{ id: crypto.randomUUID(), type: "text", value: "" }]);
+    blockHistoryRef.current = { undo: [], redo: [] };
+    sessionUploadedImageUrlsRef.current.clear();
     setEditingId(null);
     setIsDirty(false);
     setView("form");
@@ -437,6 +493,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     });
     setEditingId(article.id);
     setBlocks(contentToBlocks(article.content.length > 0 ? article.content : [""]));
+    blockHistoryRef.current = { undo: [], redo: [] };
+    sessionUploadedImageUrlsRef.current.clear();
     setIsDirty(false);
     setView("form");
   };
@@ -462,6 +520,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     });
     setEditingId(null);
     setBlocks(contentToBlocks(article.content));
+    blockHistoryRef.current = { undo: [], redo: [] };
+    sessionUploadedImageUrlsRef.current.clear();
     setIsDirty(true);
     setView("form");
     toast({ title: "Duplicated", description: "Edit and save as a new article." });
@@ -472,6 +532,16 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     if (!confirm("Delete this article?")) return;
     try {
       await deleteArticle(id);
+      if (art) {
+        const imageUrls = extractImageUrlsFromArticle(art);
+        if (imageUrls.length > 0) {
+          try {
+            await deleteStorageFilesByUrls(imageUrls);
+          } catch (imgErr) {
+            console.error("[AdminDashboard] failed to delete article images:", imgErr);
+          }
+        }
+      }
       logAction("deleted", art?.title ?? id);
       toast({ title: "Deleted", description: "Article removed." });
       setSelected((prev) => { const s = new Set(prev); s.delete(id); return s; });
@@ -484,7 +554,16 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} selected article(s)?`)) return;
     try {
+      const selectedArticles = articles.filter((a) => selected.has(a.id));
       await Promise.all([...selected].map((id) => deleteArticle(id)));
+      const allImageUrls = selectedArticles.flatMap((article) => extractImageUrlsFromArticle(article));
+      if (allImageUrls.length > 0) {
+        try {
+          await deleteStorageFilesByUrls(allImageUrls);
+        } catch (imgErr) {
+          console.error("[AdminDashboard] failed to delete some bulk article images:", imgErr);
+        }
+      }
       logAction("deleted", `${selected.size} articles`);
       toast({ title: "Deleted", description: `${selected.size} articles removed.` });
       setSelected(new Set());
@@ -539,6 +618,23 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
         logAction("created", form.title);
         toast({ title: "Created", description: "New article added." });
       }
+
+      const referencedUrls = new Set<string>([
+        ...(payload.image_url ? [payload.image_url] : []),
+        ...extractImageUrlsFromBlocks(blocks),
+      ]);
+
+      const uploadedUrls = Array.from(sessionUploadedImageUrlsRef.current);
+      const removable = uploadedUrls.filter((url) => !referencedUrls.has(url));
+      if (removable.length > 0) {
+        try {
+          await deleteStorageFilesByUrls(removable);
+        } catch (cleanupErr) {
+          console.error("[AdminDashboard] failed to cleanup unreferenced uploads after save:", cleanupErr);
+        }
+      }
+      sessionUploadedImageUrlsRef.current.clear();
+
       setIsDirty(false);
       setView("articles");
       loadArticles(true);
@@ -555,6 +651,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const updateBlock = (index: number, value: string) => {
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
     const newBlocks = [...blocks];
     newBlocks[index] = { ...newBlocks[index], value };
     setBlocks(newBlocks);
@@ -562,12 +661,18 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const addBlock = (type: BlockType) => {
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
     setBlocks([...blocks, { id: crypto.randomUUID(), type, value: "" }]);
     markDirty();
   };
 
   const removeBlock = (index: number) => {
     if (blocks.length <= 1) return;
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
     setBlocks(blocks.filter((_, i) => i !== index));
     markDirty();
   };
@@ -575,11 +680,49 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const moveBlock = (index: number, dir: -1 | 1) => {
     const newIndex = index + dir;
     if (newIndex < 0 || newIndex >= blocks.length) return;
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
     const newBlocks = [...blocks];
     [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
     setBlocks(newBlocks);
     markDirty();
   };
+
+  const moveBlockById = useCallback((fromId: string, toId: string) => {
+    if (fromId === toId) return;
+
+    const fromIndex = blocks.findIndex((b) => b.id === fromId);
+    const toIndex = blocks.findIndex((b) => b.id === toId);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
+
+    const reordered = [...blocks];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setBlocks(reordered);
+    markDirty();
+  }, [blocks, markDirty]);
+
+  const undoBlocks = useCallback(() => {
+    const prev = blockHistoryRef.current.undo.pop();
+    if (!prev) return;
+    blockHistoryRef.current.redo.push(cloneBlocks(blocks));
+    setBlocks(cloneBlocks(prev));
+    markDirty();
+  }, [blocks, markDirty]);
+
+  const redoBlocks = useCallback(() => {
+    const next = blockHistoryRef.current.redo.pop();
+    if (!next) return;
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    setBlocks(cloneBlocks(next));
+    markDirty();
+  }, [blocks, markDirty]);
 
   const applyInlineFormat = useCallback((blockId: string, format: InlineFormat) => {
     const textarea = blockEditorRefs.current[blockId];
@@ -609,6 +752,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       nextEnd = start + wrapper.open.length + wrapper.sample.length;
     }
 
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
     setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, value: nextValue } : b)));
     markDirty();
 
@@ -617,6 +763,42 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       if (!el) return;
       el.focus();
       el.setSelectionRange(nextStart, nextEnd);
+    });
+  }, [blocks, markDirty]);
+
+  const applyBulletsToBlock = useCallback((blockId: string) => {
+    const textarea = blockEditorRefs.current[blockId];
+    const block = blocks.find((b) => b.id === blockId);
+    if (!textarea || !block || block.type === "image") return;
+
+    const source = block.value;
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
+    const lineStart = source.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    const rawLineEnd = source.indexOf("\n", end);
+    const lineEnd = rawLineEnd === -1 ? source.length : rawLineEnd;
+    const selectedLines = source.slice(lineStart, lineEnd);
+    const lines = selectedLines.split("\n");
+
+    const allBulleted = lines.every((line) => line.trim() === "" || /^\s*(?:[-*]|•)\s+/.test(line));
+    const transformed = lines.map((line) => {
+      if (line.trim() === "") return line;
+      if (allBulleted) return line.replace(/^(\s*)(?:[-*]|•)\s+/, "$1");
+      return /^\s*(?:[-*]|•)\s+/.test(line) ? line : `• ${line}`;
+    }).join("\n");
+
+    const nextValue = `${source.slice(0, lineStart)}${transformed}${source.slice(lineEnd)}`;
+    blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+    if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+    blockHistoryRef.current.redo = [];
+    setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, value: nextValue } : b)));
+    markDirty();
+
+    requestAnimationFrame(() => {
+      const el = blockEditorRefs.current[blockId];
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(lineStart, lineStart + transformed.length);
     });
   }, [blocks, markDirty]);
 
@@ -644,12 +826,21 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       } else if (e.shiftKey && key === "k") {
         e.preventDefault();
         applyInlineFormat(blockId, "code");
+      } else if (e.shiftKey && (key === "8" || key === "l")) {
+        e.preventDefault();
+        applyBulletsToBlock(blockId);
+      } else if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoBlocks();
+      } else if ((key === "y" && !e.shiftKey) || (key === "z" && e.shiftKey)) {
+        e.preventDefault();
+        redoBlocks();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [applyInlineFormat]);
+  }, [applyInlineFormat, applyBulletsToBlock, undoBlocks, redoBlocks]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -670,6 +861,26 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       ? sortDir === "asc" ? <ChevronUp className="h-3 w-3 inline ml-0.5" /> : <ChevronDown className="h-3 w-3 inline ml-0.5" />
       : null
   );
+
+  const syncFormattedEditorScroll = useCallback((blockId: string) => {
+    const editor = blockEditorRefs.current[blockId];
+    const preview = blockPreviewRefs.current[blockId];
+    if (!editor || !preview) return;
+    preview.scrollTop = editor.scrollTop;
+    preview.scrollLeft = editor.scrollLeft;
+  }, []);
+
+  const renderInlineOverlayContent = useCallback((block: ContentBlock, placeholder: string) => {
+    if (!block.value) {
+      return <span className="text-muted-foreground/40">{placeholder}</span>;
+    }
+
+    return (
+      <span className="whitespace-pre-wrap break-words">
+        {parseInlineFormatting(block.value)}
+      </span>
+    );
+  }, []);
 
   return (
     <PageTransition>
@@ -825,6 +1036,20 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                           </tbody>
                         </table>
                       </div>
+                    );
+                  }
+                  if (block.type === "bullets") {
+                    const points = block.value
+                      .split("\n")
+                      .map((line) => line.replace(/^\s*(?:[-*]|•)\s?/, "").trim())
+                      .filter(Boolean);
+                    if (points.length === 0) return null;
+                    return (
+                      <ul key={block.id} className="list-disc pl-6 space-y-1">
+                        {points.map((point, pi) => (
+                          <li key={pi} className="font-body text-base text-foreground leading-relaxed">{parseInlineFormatting(point)}</li>
+                        ))}
+                      </ul>
                     );
                   }
                   if (block.type === "heading") return (
@@ -1009,6 +1234,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               {isDirty && view === "form" && (
                 <span className="font-meta text-[10px] text-primary animate-pulse sm:hidden">&#9679;</span>
               )}
+              <ThemeToggle />
               <button
                 onClick={() => loadArticles(true)}
                 className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:block"
@@ -1581,6 +1807,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                       <ImageUpload
                         value={form.image_url}
                         onChange={(url) => { setForm({ ...form, image_url: url }); markDirty(); }}
+                        onUploaded={registerUploadedImage}
                       />
                     </div>
                   </div>
@@ -1735,17 +1962,40 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                       </span>
                     </div>
                     <div className="px-4 py-2 border-b border-border bg-secondary/20 font-meta text-[9px] uppercase tracking-wider text-muted-foreground">
-                      Shortcuts: Ctrl+B Bold · Ctrl+I Italic · Ctrl+U Underline · Ctrl+Shift+X Strike · Ctrl+Shift+K Code
+                      Shortcuts: Ctrl+B Bold · Ctrl+I Italic · Ctrl+U Underline · Ctrl+Shift+X Strike · Ctrl+Shift+K Code · Ctrl+Shift+8 Bullets · Ctrl+Z Undo · Ctrl+Y / Ctrl+Shift+Z Redo
                     </div>
                     <div className="p-4 space-y-2">
                       {blocks.map((block, i) => (
-                        <div key={block.id} className="border border-border hover:border-primary/40 transition-colors">
+                        <div
+                          key={block.id}
+                          className={`border transition-colors ${dragOverBlockId === block.id ? "border-primary" : "border-border hover:border-primary/40"}`}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            if (draggedBlockIdRef.current && draggedBlockIdRef.current !== block.id) {
+                              e.dataTransfer.dropEffect = "move";
+                              setDragOverBlockId(block.id);
+                            }
+                          }}
+                          onDragLeave={() => {
+                            if (dragOverBlockId === block.id) setDragOverBlockId(null);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const draggedId = draggedBlockIdRef.current || e.dataTransfer.getData("text/plain");
+                            if (draggedId) moveBlockById(draggedId, block.id);
+                            draggedBlockIdRef.current = null;
+                            setDragOverBlockId(null);
+                          }}
+                        >
                           {/* Block toolbar */}
                           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-secondary/20">
                             <select
                               value={block.type}
                               onChange={(e) => {
                                 const newType = e.target.value as BlockType;
+                                blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+                                if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+                                blockHistoryRef.current.redo = [];
                                 const newBlocks = [...blocks];
                                 newBlocks[i] = { ...block, type: newType, value: newType === "image" ? "" : block.value };
                                 setBlocks(newBlocks);
@@ -1757,10 +2007,28 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                               <option value="heading">H1 Heading</option>
                               <option value="subheading">H2 Subheading</option>
                               <option value="quote">❝ Quote</option>
+                              <option value="bullets">• Bullets</option>
                               <option value="table">▦ Table</option>
                               <option value="image">⬛ Image</option>
                             </select>
                             <div className="flex items-center gap-0.5">
+                              <button
+                                type="button"
+                                draggable
+                                onDragStart={(e) => {
+                                  draggedBlockIdRef.current = block.id;
+                                  e.dataTransfer.effectAllowed = "move";
+                                  e.dataTransfer.setData("text/plain", block.id);
+                                }}
+                                onDragEnd={() => {
+                                  draggedBlockIdRef.current = null;
+                                  setDragOverBlockId(null);
+                                }}
+                                className="p-1 text-muted-foreground hover:text-primary transition-colors cursor-grab active:cursor-grabbing"
+                                title="Drag to reorder"
+                              >
+                                <GripVertical className="h-3 w-3" />
+                              </button>
                               {block.type !== "image" && wordCount.perBlock[i] > 0 && (
                                 <span className="font-meta text-[9px] text-muted-foreground mr-2">{wordCount.perBlock[i]}w</span>
                               )}
@@ -1806,6 +2074,14 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                   >
                                     <Code2 className="h-3 w-3" />
                                   </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyBulletsToBlock(block.id)}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                    title="Bullets (Ctrl+Shift+8)"
+                                  >
+                                    <List className="h-3 w-3" />
+                                  </button>
                                 </>
                               )}
                               <button type="button" onClick={() => moveBlock(i, -1)} disabled={i === 0} className="p-1 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" title="Move up">
@@ -1826,12 +2102,29 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             <div className="p-3">
                               <ImageUpload
                                 value={block.value}
+                                onUploaded={registerUploadedImage}
                                 onChange={(url) => {
+                                  blockHistoryRef.current.undo.push(cloneBlocks(blocks));
+                                  if (blockHistoryRef.current.undo.length > BLOCK_HISTORY_LIMIT) blockHistoryRef.current.undo.shift();
+                                  blockHistoryRef.current.redo = [];
                                   const newBlocks = [...blocks];
                                   newBlocks[i] = { ...block, value: url };
                                   setBlocks(newBlocks);
                                   markDirty();
                                 }}
+                              />
+                            </div>
+                          ) : block.type === "bullets" ? (
+                            <div className="p-3 space-y-2">
+                              <p className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground">One bullet per line (otomatis pakai •)</p>
+                              <textarea
+                                ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                                data-block-id={block.id}
+                                value={block.value}
+                                onChange={(e) => updateBlock(i, e.target.value)}
+                                rows={5}
+                                className="w-full bg-background border border-border px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary resize-y"
+                                placeholder={"• Point pertama\n• Point kedua\n• Point ketiga"}
                               />
                             </div>
                           ) : block.type === "table" ? (
@@ -1848,48 +2141,84 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                               />
                             </div>
                           ) : block.type === "heading" ? (
-                            <textarea
-                              ref={(el) => { blockEditorRefs.current[block.id] = el; }}
-                              data-block-id={block.id}
-                              value={block.value}
-                              onChange={(e) => updateBlock(i, e.target.value)}
-                              rows={2}
-                              className="w-full bg-background px-3 py-2.5 font-heading text-2xl text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none"
-                              placeholder="Heading text..."
-                            />
-                          ) : block.type === "subheading" ? (
-                            <textarea
-                              ref={(el) => { blockEditorRefs.current[block.id] = el; }}
-                              data-block-id={block.id}
-                              value={block.value}
-                              onChange={(e) => updateBlock(i, e.target.value)}
-                              rows={2}
-                              className="w-full bg-background px-3 py-2.5 font-heading text-lg text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none"
-                              placeholder="Subheading text..."
-                            />
-                          ) : block.type === "quote" ? (
-                            <div className="flex">
-                              <div className="w-1 bg-primary/60 shrink-0 m-2 mr-0 rounded-sm" />
+                            <div className="relative">
+                              <div
+                                ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
+                                className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-heading text-2xl text-foreground"
+                              >
+                                {renderInlineOverlayContent(block, "Heading text...")}
+                              </div>
                               <textarea
                                 ref={(el) => { blockEditorRefs.current[block.id] = el; }}
                                 data-block-id={block.id}
                                 value={block.value}
                                 onChange={(e) => updateBlock(i, e.target.value)}
-                                rows={3}
-                                className="flex-1 bg-background px-3 py-2.5 font-body text-sm text-foreground italic placeholder:text-muted-foreground/40 focus:outline-none resize-y"
-                                placeholder="Quote text..."
+                                onScroll={() => syncFormattedEditorScroll(block.id)}
+                                rows={2}
+                                className="relative z-10 w-full bg-transparent px-3 py-2.5 font-heading text-2xl text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent placeholder:text-transparent focus:outline-none resize-none"
+                                placeholder="Heading text..."
                               />
                             </div>
+                          ) : block.type === "subheading" ? (
+                            <div className="relative">
+                              <div
+                                ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
+                                className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-heading text-lg text-foreground"
+                              >
+                                {renderInlineOverlayContent(block, "Subheading text...")}
+                              </div>
+                              <textarea
+                                ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                                data-block-id={block.id}
+                                value={block.value}
+                                onChange={(e) => updateBlock(i, e.target.value)}
+                                onScroll={() => syncFormattedEditorScroll(block.id)}
+                                rows={2}
+                                className="relative z-10 w-full bg-transparent px-3 py-2.5 font-heading text-lg text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent placeholder:text-transparent focus:outline-none resize-none"
+                                placeholder="Subheading text..."
+                              />
+                            </div>
+                          ) : block.type === "quote" ? (
+                            <div className="flex">
+                              <div className="w-1 bg-primary/60 shrink-0 m-2 mr-0 rounded-sm" />
+                              <div className="relative flex-1">
+                                <div
+                                  ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
+                                  className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-body text-sm text-foreground italic"
+                                >
+                                  {renderInlineOverlayContent(block, "Quote text...")}
+                                </div>
+                                <textarea
+                                  ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                                  data-block-id={block.id}
+                                  value={block.value}
+                                  onChange={(e) => updateBlock(i, e.target.value)}
+                                  onScroll={() => syncFormattedEditorScroll(block.id)}
+                                  rows={3}
+                                  className="relative z-10 w-full bg-transparent px-3 py-2.5 font-body text-sm text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent italic placeholder:text-transparent focus:outline-none resize-y"
+                                  placeholder="Quote text..."
+                                />
+                              </div>
+                            </div>
                           ) : (
-                            <textarea
-                              ref={(el) => { blockEditorRefs.current[block.id] = el; }}
-                              data-block-id={block.id}
-                              value={block.value}
-                              onChange={(e) => updateBlock(i, e.target.value)}
-                              rows={4}
-                              className="w-full bg-background px-3 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-y"
-                              placeholder={`Write paragraph ${i + 1}...`}
-                            />
+                            <div className="relative">
+                              <div
+                                ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
+                                className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-body text-sm text-foreground"
+                              >
+                                {renderInlineOverlayContent(block, `Write paragraph ${i + 1}...`)}
+                              </div>
+                              <textarea
+                                ref={(el) => { blockEditorRefs.current[block.id] = el; }}
+                                data-block-id={block.id}
+                                value={block.value}
+                                onChange={(e) => updateBlock(i, e.target.value)}
+                                onScroll={() => syncFormattedEditorScroll(block.id)}
+                                rows={4}
+                                className="relative z-10 w-full bg-transparent px-3 py-2.5 font-body text-sm text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent placeholder:text-transparent focus:outline-none resize-y"
+                                placeholder={`Write paragraph ${i + 1}...`}
+                              />
+                            </div>
                           )}
                         </div>
                       ))}
@@ -1906,6 +2235,9 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                         </button>
                         <button type="button" onClick={() => addBlock("quote")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
                           <Quote className="h-3.5 w-3.5" /> Quote
+                        </button>
+                        <button type="button" onClick={() => addBlock("bullets")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
+                          <Pilcrow className="h-3.5 w-3.5" /> Bullets
                         </button>
                         <button type="button" onClick={() => addBlock("table")} className="flex items-center gap-1.5 py-2 px-3 border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary font-meta text-[10px] uppercase tracking-wider transition-colors">
                           <Table2 className="h-3.5 w-3.5" /> Table

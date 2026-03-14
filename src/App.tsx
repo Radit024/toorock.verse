@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -41,6 +42,14 @@ const AnimatedRoutes = () => {
 const AppShell = () => {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
+
+  useEffect(() => {
+    const savedTheme = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
+    const prefersDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const useDark = savedTheme ? savedTheme === "dark" : prefersDark;
+    document.documentElement.classList.toggle("dark", useDark);
+  }, []);
+
   return (
     <>
       <ScrollToTop />

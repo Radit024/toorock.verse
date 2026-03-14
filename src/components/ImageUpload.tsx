@@ -6,9 +6,10 @@ import { toast } from "@/hooks/use-toast";
 interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
+  onUploaded?: (url: string) => void;
 }
 
-const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
+const ImageUpload = ({ value, onChange, onUploaded }: ImageUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -18,8 +19,8 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
       toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Error", description: "Image must be under 5MB", variant: "destructive" });
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be under 2MB", variant: "destructive" });
       return;
     }
 
@@ -36,9 +37,10 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
 
     const { data: urlData } = supabase.storage.from("article-images").getPublicUrl(path);
     onChange(urlData.publicUrl);
+    onUploaded?.(urlData.publicUrl);
     setUploading(false);
     toast({ title: "Uploaded", description: "Image ready" });
-  }, [onChange]);
+  }, [onChange, onUploaded]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Trophy, RefreshCw, Crown, LogOut } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAdminUploadLeaderboard, type AdminLeaderboardEntry } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -77,6 +78,7 @@ const AdminLeaderboard = () => {
               <span className="font-heading text-xl sm:text-2xl text-primary tracking-widest truncate">ADMIN LEADERBOARD</span>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <button
                 onClick={() => loadLeaderboard(true)}
                 className="p-2 text-muted-foreground hover:text-primary transition-colors"

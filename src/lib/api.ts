@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
+const ARTICLE_IMAGE_BUCKET = "article-images";
+
 export interface DbArticle {
   id: string;
   slug: string;
@@ -139,6 +141,35 @@ export const updateArticle = async (
 
 export const deleteArticle = async (id: string): Promise<void> => {
   const { error } = await supabase.from("articles").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+};
+
+export const extractStoragePathFromUrl = (url: string, bucket = ARTICLE_IMAGE_BUCKET): string | null => {
+  try {
+    const parsed = new URL(url);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = parsed.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    const encodedPath = parsed.pathname.slice(idx + marker.length);
+    if (!encodedPath) return null;
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return null;
+  }
+};
+
+export const deleteStorageFilesByUrls = async (urls: string[]): Promise<void> => {
+  const uniquePaths = Array.from(
+    new Set(
+      urls
+        .map((url) => extractStoragePathFromUrl(url))
+        .filter((p): p is string => !!p)
+    )
+  );
+
+  if (uniquePaths.length === 0) return;
+
+  const { error } = await supabase.storage.from(ARTICLE_IMAGE_BUCKET).remove(uniquePaths);
   if (error) throw new Error(error.message);
 };
 

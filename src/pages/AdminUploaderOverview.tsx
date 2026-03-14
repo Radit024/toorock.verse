@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Crown, LogOut, RefreshCw } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchAdminUploadLeaderboard,
@@ -127,6 +128,7 @@ const AdminUploaderOverview = () => {
               <span className="font-heading text-xl sm:text-2xl text-primary tracking-widest truncate">UPLOADER OVERVIEW</span>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <button
                 onClick={() => loadPage(true)}
                 className="p-2 text-muted-foreground hover:text-primary transition-colors"
