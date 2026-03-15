@@ -204,6 +204,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [blocks, setBlocks] = useState<ContentBlock[]>([{ id: crypto.randomUUID(), type: "text", value: "" }]);
   const blockHistoryRef = useRef<{ undo: ContentBlock[][]; redo: ContentBlock[][] }>({ undo: [], redo: [] });
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
+  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
 
   // profile
   const [profileOpen, setProfileOpen] = useState(false);
@@ -364,10 +365,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     }
   }, []);
 
-  const switchView = (newView: View) => {
+  const switchView = async (newView: View) => {
     if (view === "form" && isDirty) {
       if (!confirm("You have unsaved changes. Leave anyway?")) return;
-      void cleanupTemporaryUploads();
+      await cleanupTemporaryUploads();
     }
     setIsDirty(false);
     setView(newView);
@@ -453,9 +454,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   }, [blocks]);
 
   // --- Form handlers ---
-  const handleNew = () => {
+  const handleNew = async () => {
     if (view === "form" && isDirty) {
       if (!confirm("You have unsaved changes. Start a new article anyway?")) return;
+      await cleanupTemporaryUploads();
     }
     setForm({
       ...emptyForm,
@@ -472,9 +474,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     setView("form");
   };
 
-  const handleEdit = (article: DbArticle) => {
+  const handleEdit = async (article: DbArticle) => {
     if (view === "form" && isDirty) {
       if (!confirm("You have unsaved changes. Switch to this article?")) return;
+      await cleanupTemporaryUploads();
     }
     setForm({
       slug: article.slug,
@@ -499,9 +502,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     setView("form");
   };
 
-  const handleDuplicate = (article: DbArticle) => {
+  const handleDuplicate = async (article: DbArticle) => {
     if (view === "form" && isDirty) {
       if (!confirm("You have unsaved changes. Duplicate this article?")) return;
+      await cleanupTemporaryUploads();
     }
     setForm({
       slug: `copy-of-${article.slug}`,
@@ -2144,7 +2148,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             <div className="relative">
                               <div
                                 ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
-                                className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-heading text-2xl text-foreground"
+                                className={`pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-heading text-2xl text-foreground ${focusedBlockId === block.id ? "hidden" : ""}`}
                               >
                                 {renderInlineOverlayContent(block, "Heading text...")}
                               </div>
@@ -2153,9 +2157,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                 data-block-id={block.id}
                                 value={block.value}
                                 onChange={(e) => updateBlock(i, e.target.value)}
+                                onFocus={() => setFocusedBlockId(block.id)}
+                                onBlur={() => setFocusedBlockId((prev) => (prev === block.id ? null : prev))}
                                 onScroll={() => syncFormattedEditorScroll(block.id)}
                                 rows={2}
-                                className="relative z-10 w-full bg-transparent px-3 py-2.5 font-heading text-2xl text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent placeholder:text-transparent focus:outline-none resize-none"
+                                className={`relative z-10 w-full bg-transparent px-3 py-2.5 font-heading text-2xl caret-foreground selection:bg-primary/20 focus:outline-none resize-none ${focusedBlockId === block.id ? "text-foreground placeholder:text-muted-foreground/40 selection:text-foreground" : "text-transparent placeholder:text-transparent selection:text-transparent"}`}
                                 placeholder="Heading text..."
                               />
                             </div>
@@ -2163,7 +2169,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             <div className="relative">
                               <div
                                 ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
-                                className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-heading text-lg text-foreground"
+                                className={`pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-heading text-lg text-foreground ${focusedBlockId === block.id ? "hidden" : ""}`}
                               >
                                 {renderInlineOverlayContent(block, "Subheading text...")}
                               </div>
@@ -2172,9 +2178,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                 data-block-id={block.id}
                                 value={block.value}
                                 onChange={(e) => updateBlock(i, e.target.value)}
+                                onFocus={() => setFocusedBlockId(block.id)}
+                                onBlur={() => setFocusedBlockId((prev) => (prev === block.id ? null : prev))}
                                 onScroll={() => syncFormattedEditorScroll(block.id)}
                                 rows={2}
-                                className="relative z-10 w-full bg-transparent px-3 py-2.5 font-heading text-lg text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent placeholder:text-transparent focus:outline-none resize-none"
+                                className={`relative z-10 w-full bg-transparent px-3 py-2.5 font-heading text-lg caret-foreground selection:bg-primary/20 focus:outline-none resize-none ${focusedBlockId === block.id ? "text-foreground placeholder:text-muted-foreground/40 selection:text-foreground" : "text-transparent placeholder:text-transparent selection:text-transparent"}`}
                                 placeholder="Subheading text..."
                               />
                             </div>
@@ -2184,7 +2192,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                               <div className="relative flex-1">
                                 <div
                                   ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
-                                  className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-body text-sm text-foreground italic"
+                                  className={`pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-body text-sm text-foreground italic ${focusedBlockId === block.id ? "hidden" : ""}`}
                                 >
                                   {renderInlineOverlayContent(block, "Quote text...")}
                                 </div>
@@ -2193,9 +2201,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                   data-block-id={block.id}
                                   value={block.value}
                                   onChange={(e) => updateBlock(i, e.target.value)}
+                                  onFocus={() => setFocusedBlockId(block.id)}
+                                  onBlur={() => setFocusedBlockId((prev) => (prev === block.id ? null : prev))}
                                   onScroll={() => syncFormattedEditorScroll(block.id)}
                                   rows={3}
-                                  className="relative z-10 w-full bg-transparent px-3 py-2.5 font-body text-sm text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent italic placeholder:text-transparent focus:outline-none resize-y"
+                                  className={`relative z-10 w-full bg-transparent px-3 py-2.5 font-body text-sm caret-foreground selection:bg-primary/20 italic focus:outline-none resize-y ${focusedBlockId === block.id ? "text-foreground placeholder:text-muted-foreground/40 selection:text-foreground" : "text-transparent placeholder:text-transparent selection:text-transparent"}`}
                                   placeholder="Quote text..."
                                 />
                               </div>
@@ -2204,7 +2214,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                             <div className="relative">
                               <div
                                 ref={(el) => { blockPreviewRefs.current[block.id] = el; }}
-                                className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-body text-sm text-foreground"
+                                className={`pointer-events-none absolute inset-0 overflow-hidden px-3 py-2.5 font-body text-sm text-foreground ${focusedBlockId === block.id ? "hidden" : ""}`}
                               >
                                 {renderInlineOverlayContent(block, `Write paragraph ${i + 1}...`)}
                               </div>
@@ -2213,9 +2223,11 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                                 data-block-id={block.id}
                                 value={block.value}
                                 onChange={(e) => updateBlock(i, e.target.value)}
+                                onFocus={() => setFocusedBlockId(block.id)}
+                                onBlur={() => setFocusedBlockId((prev) => (prev === block.id ? null : prev))}
                                 onScroll={() => syncFormattedEditorScroll(block.id)}
                                 rows={4}
-                                className="relative z-10 w-full bg-transparent px-3 py-2.5 font-body text-sm text-transparent caret-foreground selection:bg-primary/20 selection:text-transparent placeholder:text-transparent focus:outline-none resize-y"
+                                className={`relative z-10 w-full bg-transparent px-3 py-2.5 font-body text-sm caret-foreground selection:bg-primary/20 focus:outline-none resize-y ${focusedBlockId === block.id ? "text-foreground placeholder:text-muted-foreground/40 selection:text-foreground" : "text-transparent placeholder:text-transparent selection:text-transparent"}`}
                                 placeholder={`Write paragraph ${i + 1}...`}
                               />
                             </div>
