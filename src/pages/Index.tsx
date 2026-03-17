@@ -39,10 +39,16 @@ const Index = () => {
 
   const latestArticles = articles.slice(0, 6);
   const trendingArticles = articles.slice(0, 5);
-  const gamesArticles = articles.filter((a) => a.category === "Games");
-  const animeArticles = articles.filter((a) => a.category === "Anime");
-  const esportsArticles = articles.filter((a) => a.category === "Esports");
-  const cultureArticles = articles.filter((a) => a.category === "Culture" || a.category === "Movies");
+  const hasCategory = (article: Article, category: string) => {
+    const categories = article.categories?.length ? article.categories : [article.category];
+    return categories.includes(category);
+  };
+
+  const gamesArticles = articles.filter((a) => hasCategory(a, "Games"));
+  const animeArticles = articles.filter((a) => hasCategory(a, "Anime"));
+  const esportsArticles = articles.filter((a) => hasCategory(a, "Esports"));
+  const techArticles = articles.filter((a) => hasCategory(a, "Tech"));
+  const cultureArticles = articles.filter((a) => hasCategory(a, "Culture") || hasCategory(a, "Movies"));
 
   return (
     <PageTransition>
@@ -197,6 +203,7 @@ const Index = () => {
             <SectionBlock title="GAMES" category="Games" articles={gamesArticles} />
             <SectionBlock title="ANIME" category="Anime" articles={animeArticles} />
             <SectionBlock title="ESPORTS" category="Esports" articles={esportsArticles} />
+            <SectionBlock title="TECH" category="Tech" articles={techArticles} />
             <SectionBlock title="CULTURE & FILM" category="Culture" articles={cultureArticles} />
           </div>
 

@@ -20,6 +20,7 @@ export type Database = {
           author_name: string
           author_role: string
           category: string
+          categories: string[]
           content: string[]
           created_at: string
           id: string
@@ -37,6 +38,7 @@ export type Database = {
           author_name?: string
           author_role?: string
           category: string
+          categories?: string[]
           content?: string[]
           created_at?: string
           id?: string
@@ -54,6 +56,7 @@ export type Database = {
           author_name?: string
           author_role?: string
           category?: string
+          categories?: string[]
           content?: string[]
           created_at?: string
           id?: string

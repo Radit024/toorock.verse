@@ -8,6 +8,7 @@ export interface DbArticle {
   slug: string;
   title: string;
   category: string;
+  categories: string[];
   image_url: string | null;
   author_name: string;
   author_role: string;
@@ -375,7 +376,8 @@ export const dbToArticle = (db: DbArticle): Article => ({
   id: db.slug,
   image: db.image_url || "",
   title: db.title,
-  category: db.category,
+  category: db.categories?.[0] || db.category,
+  categories: db.categories?.length ? db.categories : [db.category],
   date: formatRelativeDate(db.created_at),
   isBreaking: db.is_breaking,
   author: { name: db.author_name, role: db.author_role, avatar: db.author_avatar, bio: db.author_bio },

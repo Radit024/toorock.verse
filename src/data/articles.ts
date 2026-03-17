@@ -18,6 +18,7 @@ export interface Article {
   image: string;
   title: string;
   category: string;
+  categories?: string[];
   date: string;
   isBreaking?: boolean;
   author: { name: string; role: string; avatar: string; bio?: string };

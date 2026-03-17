@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Gamepad2, Tv, Swords, Film, Search } from "lucide-react";
+import { Menu, X, Gamepad2, Tv, Swords, Film, Search, Cpu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navItems = [
   { label: "Games", icon: Gamepad2, href: "/category/Games" },
   { label: "Anime", icon: Tv, href: "/category/Anime" },
   { label: "Esports", icon: Swords, href: "/category/Esports" },
+  { label: "Tech", icon: Cpu, href: "/category/Tech" },
   { label: "Culture", icon: Film, href: "/category/Culture" },
 ];
 

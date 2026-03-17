@@ -27,7 +27,7 @@ import {
   type DbArticle,
 } from "@/lib/api";
 
-const CATEGORIES = ["Anime", "Games", "Esports", "Culture", "Movies", "Reviews"];
+const CATEGORIES = ["Anime", "Games", "Esports", "Culture", "Movies", "Tech", "Reviews"];
 const PAGE_SIZE = 12;
 
 type LogAction = "created" | "updated" | "deleted" | "published" | "unpublished" | "duplicated";
@@ -42,6 +42,7 @@ const emptyForm = {
   slug: "",
   title: "",
   category: "Anime",
+  categories: ["Anime"],
   image_url: "",
   author_name: "",
   author_role: "Editor",
@@ -259,6 +260,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     return !!currentUserId && article.owner_id === currentUserId;
   }, [currentUserId]);
 
+  const getArticleCategories = useCallback((article: DbArticle) => {
+    return article.categories && article.categories.length > 0 ? article.categories : [article.category];
+  }, []);
+
   const loadCollaborators = useCallback(async (articleId: string) => {
     const list = await fetchArticleCollaborators(articleId);
     setCollaboratorsMap((prev) => ({ ...prev, [articleId]: list }));
@@ -414,10 +419,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       drafts: articles.filter((a) => !a.published).length,
       breaking: articles.filter((a) => a.is_breaking).length,
       publishRate: articles.length ? Math.round((published / articles.length) * 100) : 0,
-      byCategory: CATEGORIES.map((c) => ({ name: c, count: articles.filter((a) => a.category === c).length })),
+      byCategory: CATEGORIES.map((c) => ({ name: c, count: articles.filter((a) => getArticleCategories(a).includes(c)).length })),
       latestPublish: articles.filter((a) => a.published).sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] ?? null,
     };
-  }, [articles]);
+  }, [articles, getArticleCategories]);
 
   // --- Filtered & sorted list ---
   const filtered = useMemo(() => {
@@ -427,7 +432,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
         a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         a.slug.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    if (filterCategory !== "All") list = list.filter((a) => a.category === filterCategory);
+    if (filterCategory !== "All") list = list.filter((a) => getArticleCategories(a).includes(filterCategory));
     if (filterStatus === "Published") list = list.filter((a) => a.published);
     if (filterStatus === "Draft") list = list.filter((a) => !a.published);
     if (filterStatus === "Breaking") list = list.filter((a) => a.is_breaking);
@@ -437,7 +442,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
     });
     return list;
-  }, [articles, searchQuery, filterCategory, filterStatus, sortField, sortDir]);
+  }, [articles, searchQuery, filterCategory, filterStatus, sortField, sortDir, getArticleCategories]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -483,6 +488,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       slug: article.slug,
       title: article.title,
       category: article.category,
+      categories: getArticleCategories(article),
       image_url: article.image_url || "",
       author_name: article.author_name,
       author_role: article.author_role,
@@ -511,6 +517,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       slug: `copy-of-${article.slug}`,
       title: `Copy of ${article.title}`,
       category: article.category,
+      categories: getArticleCategories(article),
       image_url: article.image_url || "",
       author_name: article.author_name,
       author_role: article.author_role,
@@ -608,8 +615,12 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     }
     setSaving(true);
     try {
+      const normalizedCategories = Array.from(new Set((form.categories || []).filter(Boolean)));
+      const primaryCategory = normalizedCategories[0] || form.category || CATEGORIES[0];
       const payload = {
         ...form,
+        category: primaryCategory,
+        categories: normalizedCategories.length > 0 ? normalizedCategories : [primaryCategory],
         image_url: form.image_url || null,
         content: blocksToContent(blocks),
       };
@@ -651,6 +662,23 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const handleTitleChange = (title: string) => {
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     setForm((prev) => ({ ...prev, title, ...(editingId ? {} : { slug }) }));
+    markDirty();
+  };
+
+  const toggleFormCategory = (category: string) => {
+    setForm((prev) => {
+      const exists = prev.categories.includes(category);
+      const nextCategories = exists
+        ? prev.categories.filter((c) => c !== category)
+        : [...prev.categories, category];
+
+      const guaranteed = nextCategories.length > 0 ? nextCategories : [category];
+      return {
+        ...prev,
+        categories: guaranteed,
+        category: guaranteed[0],
+      };
+    });
     markDirty();
   };
 
@@ -1851,21 +1879,32 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                     </div>
                   </div>
 
-                  {/* Category + Read time */}
+                  {/* Categories + Read time */}
                   <div className="border border-border">
                     <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-secondary/40">
                       <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Categorisation</span>
                     </div>
-                    <div className="p-4 grid grid-cols-2 gap-3">
+                    <div className="p-4 grid grid-cols-1 gap-3">
                       <div>
-                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Category</label>
-                        <select
-                          value={form.category}
-                          onChange={(e) => { setForm({ ...form, category: e.target.value }); markDirty(); }}
-                          className="w-full bg-background border border-border px-3 py-2 font-body text-sm text-foreground focus:outline-none focus:border-primary"
-                        >
-                          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Categories</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {CATEGORIES.map((c) => {
+                            const selected = form.categories.includes(c);
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => toggleFormCategory(c)}
+                                className={`px-2 py-1.5 border font-meta text-[10px] uppercase tracking-wider transition-colors text-left ${selected ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground hover:border-primary"}`}
+                              >
+                                {c}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="font-meta text-[9px] text-muted-foreground mt-2">
+                          Primary: {form.categories[0] || form.category}
+                        </p>
                       </div>
                       <div>
                         <label className="font-meta text-[9px] uppercase tracking-wider text-muted-foreground block mb-1.5">Read Time</label>

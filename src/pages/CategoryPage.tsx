@@ -38,7 +38,10 @@ const CategoryPage = () => {
   }, [loadArticles]);
 
   const filtered = allArticles.filter(
-    (a) => a.category.toLowerCase() === decodedCategory.toLowerCase()
+    (a) => {
+      const categories = a.categories?.length ? a.categories : [a.category];
+      return categories.some((c) => c.toLowerCase() === decodedCategory.toLowerCase());
+    }
   );
 
   const categoryTitle = decodedCategory.charAt(0).toUpperCase() + decodedCategory.slice(1);

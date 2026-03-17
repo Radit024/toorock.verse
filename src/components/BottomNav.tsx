@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Gamepad2, Tv, Swords, Film, Clapperboard, BookOpen } from "lucide-react";
+import { Home, Gamepad2, Tv, Swords, Clapperboard, BookOpen, Cpu } from "lucide-react";
 
 const tabs = [
   { label: "Home", icon: Home, href: "/" },
@@ -7,6 +7,7 @@ const tabs = [
   { label: "Anime", icon: Tv, href: "/category/Anime" },
   { label: "Esports", icon: Swords, href: "/category/Esports" },
   { label: "Movies", icon: Clapperboard, href: "/category/Movies" },
+  { label: "Tech", icon: Cpu, href: "/category/Tech" },
   { label: "Culture", icon: BookOpen, href: "/category/Culture" },
 ];
 

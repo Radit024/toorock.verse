@@ -10,6 +10,7 @@ const navItems = [
   { label: "Esports", href: "/category/Esports" },
   { label: "Culture", href: "/category/Culture" },
   { label: "Movies", href: "/category/Movies" },
+  { label: "Tech", href: "/category/Tech" },
   { label: "Reviews", href: "/category/Reviews" },
 ];
 
