@@ -1,12 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 type ArticlePayload = {
-  id: string;
+  slug: string;
   title: string;
-  image: string | null;
-  excerpt: string | null;
+  image_url: string | null;
   category: string | null;
-  content: string[] | null;
+  content?: string[];
 };
 
 const SITE_NAME = "ToRock Verse";
@@ -28,7 +27,6 @@ function normalizeImageUrl(image: string | null, siteOrigin: string) {
 }
 
 function extractDescription(article: ArticlePayload) {
-  if (article.excerpt?.trim()) return article.excerpt.trim();
   const firstParagraph = article.content?.find((segment) => segment && segment.trim());
   if (firstParagraph) {
     const plainText = firstParagraph
@@ -49,7 +47,7 @@ async function fetchArticle(articleId: string): Promise<ArticlePayload | null> {
     return null;
   }
 
-  const endpoint = `${supabaseUrl}/rest/v1/articles?select=id,title,image,excerpt,category,content,published&id=eq.${encodeURIComponent(articleId)}&published=eq.true&limit=1`;
+  const endpoint = `${supabaseUrl}/rest/v1/articles?select=slug,title,image_url,category,content,published&slug=eq.${encodeURIComponent(articleId)}&published=eq.true&limit=1`;
 
   const response = await fetch(endpoint, {
     headers: {
@@ -91,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const title = escapeHtml(article.title);
   const description = escapeHtml(extractDescription(article));
-  const imageUrl = normalizeImageUrl(article.image, siteOrigin);
+  const imageUrl = normalizeImageUrl(article.image_url, siteOrigin);
   const escapedImageUrl = escapeHtml(imageUrl);
 
   const html = `<!doctype html>

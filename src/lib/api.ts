@@ -83,37 +83,18 @@ export const fetchAllArticles = async (): Promise<DbArticle[]> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not logged in");
 
-  // Preferred query includes collaborator relation so we can show owned + collaborated records.
+  // RLS on `articles` already controls owner/collaborator visibility.
+  // Keep this query simple so shared articles are not accidentally filtered out.
   const { data, error } = await supabase
     .from("articles")
-    .select("*, article_collaborators(collaborator_id)")
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-    const legacyUserIdIssue = error.message.toLowerCase().includes("user_id") && error.message.toLowerCase().includes("does not exist");
-    if (!legacyUserIdIssue) throw new Error(error.message);
-
-    // Fallback for legacy DBs where collaborator policies still reference old `user_id`.
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from("articles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (fallbackError) throw new Error(fallbackError.message);
-
-    return ((fallbackData as DbArticle[]) ?? []).filter((a) => a.owner_id === user.id);
+    throw new Error(error.message);
   }
 
-  let articles = data as (DbArticle & { article_collaborators: Array<{ collaborator_id: string }> })[];
-  
-  // Filter locally: own or collaborated
-  articles = articles.filter(a => {
-    if (a.owner_id === user.id) return true;
-    if (a.article_collaborators && a.article_collaborators.some(c => c.collaborator_id === user.id)) return true;
-    return false;
-  });
-
-  return articles ?? [];
+  return (data as DbArticle[]) ?? [];
 };
 
 export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null> => {

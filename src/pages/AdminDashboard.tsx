@@ -398,6 +398,22 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     loadArticles();
   }, []);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
+        loadArticles(true);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "article_collaborators" }, () => {
+        loadArticles(true);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Ctrl+S saves form
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
