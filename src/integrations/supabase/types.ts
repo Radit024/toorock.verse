@@ -115,6 +115,58 @@ export type Database = {
           }
         ]
       }
+      article_collaboration_invites: {
+        Row: {
+          id: string
+          article_id: string
+          inviter_id: string
+          invitee_id: string
+          status: string
+          created_at: string
+          responded_at: string | null
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          inviter_id: string
+          invitee_id: string
+          status?: string
+          created_at?: string
+          responded_at?: string | null
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          inviter_id?: string
+          invitee_id?: string
+          status?: string
+          created_at?: string
+          responded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_collaboration_invites_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_collaboration_invites_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_collaboration_invites_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -148,6 +200,46 @@ export type Database = {
           email: string
           added_at: string
         }[]
+      }
+      invite_article_collaborator: {
+        Args: {
+          p_article_id: string
+          p_invitee_id: string
+        }
+        Returns: string
+      }
+      list_article_collaboration_invites: {
+        Args: {
+          p_article_id: string
+        }
+        Returns: {
+          invite_id: string
+          invitee_id: string
+          invitee_email: string
+          status: string
+          created_at: string
+          responded_at: string | null
+        }[]
+      }
+      list_my_collaboration_invites: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          invite_id: string
+          article_id: string
+          article_slug: string
+          article_title: string
+          inviter_id: string
+          inviter_email: string
+          created_at: string
+          status: string
+        }[]
+      }
+      respond_article_collaboration_invite: {
+        Args: {
+          p_invite_id: string
+          p_action: string
+        }
+        Returns: undefined
       }
       remove_article_collaborator: {
         Args: {

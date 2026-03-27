@@ -4,7 +4,7 @@ import {
   Plus, Pencil, Trash2, Eye, EyeOff, ArrowLeft, Zap,
   Search, Filter, BarChart3, FileText, CheckCircle2, AlertCircle,
   RefreshCw, ExternalLink, ChevronDown, ChevronUp, X, Copy,
-  ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon,
+  ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Activity, Globe, AlignLeft, Menu, Image as ImageIcon, Bell,
   Heading1, Heading2, Quote, Pilcrow, LogOut, UserCircle2, User, UserPlus, Bold, Table2, Italic, Underline, Strikethrough, Code2, List, GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,17 @@ import {
   updateArticle,
   deleteArticle,
   fetchArticleCollaborators,
+  fetchArticleCollaborationInvites,
+  fetchMyCollaborationInvites,
+  inviteCollaborator,
   addCollaborator,
   removeCollaborator,
+  respondToCollaborationInvite,
   deleteStorageFilesByUrls,
+  fetchAdminUploadLeaderboard,
+  type AdminLeaderboardEntry,
+  type ArticleCollaborationInvite,
+  type IncomingCollaborationInvite,
   type ArticleCollaborator,
   type DbArticle,
 } from "@/lib/api";
@@ -55,7 +63,7 @@ const emptyForm = {
   published: false,
 };
 
-type View = "overview" | "articles" | "form" | "profile";
+type View = "overview" | "articles" | "form" | "notifications" | "profile";
 type SortField = "created_at" | "title" | "category";
 type SortDir = "asc" | "desc";
 
@@ -84,6 +92,10 @@ const INLINE_WRAPPERS: Record<InlineFormat, { open: string; close: string; sampl
   strike: { open: "~~", close: "~~", sample: "strike" },
   code: { open: "`", close: "`", sample: "code" },
 };
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 function parseInlineFormatting(text: string): ReactNode[] {
   const withLineBreaks = (value: string, keyPrefix: string): ReactNode[] => {
@@ -182,11 +194,15 @@ const AdminDashboard = () => {
 const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [articles, setArticles] = useState<DbArticle[]>([]);
   const [collaboratorsMap, setCollaboratorsMap] = useState<Record<string, ArticleCollaborator[]>>({});
+  const [invitesMap, setInvitesMap] = useState<Record<string, ArticleCollaborationInvite[]>>({});
+  const [incomingInvites, setIncomingInvites] = useState<IncomingCollaborationInvite[]>([]);
+  const [availableEditors, setAvailableEditors] = useState<AdminLeaderboardEntry[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [collabArticle, setCollabArticle] = useState<DbArticle | null>(null);
   const [collabOpen, setCollabOpen] = useState(false);
   const [collabEmailInput, setCollabEmailInput] = useState("");
   const [collabLoading, setCollabLoading] = useState(false);
+  const [inviteActionId, setInviteActionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("overview");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -269,6 +285,32 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
     setCollaboratorsMap((prev) => ({ ...prev, [articleId]: list }));
   }, []);
 
+  const loadArticleInvites = useCallback(async (articleId: string) => {
+    const list = await fetchArticleCollaborationInvites(articleId);
+    setInvitesMap((prev) => ({ ...prev, [articleId]: list }));
+  }, []);
+
+  const loadIncomingInvites = useCallback(async () => {
+    try {
+      const list = await fetchMyCollaborationInvites();
+      setIncomingInvites(list.filter((item) => item.status === "pending"));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[AdminDashboard] fetchMyCollaborationInvites error:", msg);
+    }
+  }, []);
+
+  const loadInviteCandidates = useCallback(async () => {
+    try {
+      const list = await fetchAdminUploadLeaderboard();
+      setAvailableEditors(list);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[AdminDashboard] fetchAdminUploadLeaderboard error:", msg);
+      setAvailableEditors([]);
+    }
+  }, []);
+
   const handleManageCollaborators = async (article: DbArticle) => {
     if (!isOwner(article)) {
       toast({ title: "Owner only", description: "Only article owner can manage collaborators.", variant: "destructive" });
@@ -280,11 +322,42 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       setCollabEmailInput("");
       setCollabOpen(true);
       setCollabLoading(true);
-      await loadCollaborators(article.id);
-    } catch (e: any) {
-      toast({ title: "Failed to load collaborators", description: e.message, variant: "destructive" });
+      await Promise.all([
+        loadCollaborators(article.id),
+        loadArticleInvites(article.id),
+        loadInviteCandidates(),
+      ]);
+    } catch (error) {
+      toast({ title: "Failed to load collaborators", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setCollabLoading(false);
+    }
+  };
+
+  const handleInviteCollaborator = async (inviteeId: string) => {
+    if (!collabArticle) return;
+    try {
+      setInviteActionId(inviteeId);
+      await inviteCollaborator(collabArticle.id, inviteeId);
+      await loadArticleInvites(collabArticle.id);
+      toast({ title: "Invite sent", description: "Collaboration invitation has been sent." });
+    } catch (error) {
+      toast({ title: "Failed to invite", description: getErrorMessage(error), variant: "destructive" });
+    } finally {
+      setInviteActionId(null);
+    }
+  };
+
+  const handleRespondInvite = async (inviteId: string, action: "accepted" | "rejected") => {
+    try {
+      setInviteActionId(inviteId);
+      await respondToCollaborationInvite(inviteId, action);
+      await Promise.all([loadIncomingInvites(), loadArticles(true)]);
+      toast({ title: action === "accepted" ? "Invite accepted" : "Invite rejected" });
+    } catch (error) {
+      toast({ title: "Failed to respond invite", description: getErrorMessage(error), variant: "destructive" });
+    } finally {
+      setInviteActionId(null);
     }
   };
 
@@ -302,8 +375,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       await loadCollaborators(collabArticle.id);
       setCollabEmailInput("");
       toast({ title: "Collaborator added" });
-    } catch (e: any) {
-      toast({ title: "Failed to add collaborator", description: e.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Failed to add collaborator", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setCollabLoading(false);
     }
@@ -316,8 +389,8 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       await removeCollaborator(collabArticle.id, collaboratorId);
       await loadCollaborators(collabArticle.id);
       toast({ title: "Collaborator removed" });
-    } catch (e: any) {
-      toast({ title: "Failed to remove collaborator", description: e.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Failed to remove collaborator", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setCollabLoading(false);
     }
@@ -399,6 +472,10 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   }, []);
 
   useEffect(() => {
+    loadIncomingInvites();
+  }, [loadIncomingInvites]);
+
+  useEffect(() => {
     const channel = supabase
       .channel("admin-dashboard-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
@@ -407,12 +484,16 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "article_collaborators" }, () => {
         loadArticles(true);
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "article_collaboration_invites" }, () => {
+        loadArticles(true);
+        loadIncomingInvites();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadIncomingInvites]);
 
   // Ctrl+S saves form
   useEffect(() => {
@@ -896,7 +977,12 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const toggleSelect = (id: string) => {
-    setSelected((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    setSelected((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
   };
 
   const toggleSelectAll = () => {
@@ -995,6 +1081,67 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                         </button>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div className="border border-border">
+                  <div className="px-3 py-2 border-b border-border bg-secondary/40">
+                    <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Pending Invites</p>
+                  </div>
+                  <div className="divide-y divide-border max-h-40 overflow-y-auto">
+                    {((invitesMap[collabArticle.id] ?? []).filter((invite) => invite.status === "pending")).length === 0 && (
+                      <p className="font-body text-xs text-muted-foreground px-3 py-3">No pending invites.</p>
+                    )}
+                    {(invitesMap[collabArticle.id] ?? [])
+                      .filter((invite) => invite.status === "pending")
+                      .map((invite) => (
+                        <div key={invite.invite_id} className="px-3 py-2.5">
+                          <p className="font-body text-sm text-foreground truncate">{invite.invitee_email}</p>
+                          <p className="font-meta text-[9px] text-muted-foreground">
+                            Invited {new Date(invite.created_at).toLocaleDateString("en-GB")}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="border border-border">
+                  <div className="px-3 py-2 border-b border-border bg-secondary/40">
+                    <p className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">Invite Editors</p>
+                  </div>
+                  <div className="divide-y divide-border max-h-56 overflow-y-auto">
+                    {availableEditors.length === 0 && (
+                      <p className="font-body text-xs text-muted-foreground px-3 py-3">No editors available.</p>
+                    )}
+                    {availableEditors.map((editor) => {
+                      const existingCollaborators = new Set((collaboratorsMap[collabArticle.id] ?? []).map((item) => item.collaborator_id));
+                      const pendingInvites = new Set(
+                        (invitesMap[collabArticle.id] ?? [])
+                          .filter((invite) => invite.status === "pending")
+                          .map((invite) => invite.invitee_id)
+                      );
+                      const isSelf = editor.user_id === currentUserId;
+                      const isAlreadyCollaborator = existingCollaborators.has(editor.user_id);
+                      const isPending = pendingInvites.has(editor.user_id);
+                      const disabled = isSelf || isAlreadyCollaborator || isPending || !!inviteActionId;
+
+                      return (
+                        <div key={editor.user_id} className="flex items-center justify-between px-3 py-2.5 gap-2">
+                          <div className="min-w-0">
+                            <p className="font-body text-sm text-foreground truncate">{editor.display_name || editor.user_id}</p>
+                            <p className="font-meta text-[9px] text-muted-foreground truncate">{editor.user_id}</p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => handleInviteCollaborator(editor.user_id)}
+                            className="font-meta text-[10px] uppercase tracking-wider border px-2.5 py-1.5 transition-colors border-border text-muted-foreground hover:text-primary hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {isSelf ? "You" : isAlreadyCollaborator ? "Added" : isPending ? "Invited" : "Invite"}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1178,6 +1325,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                 {([
                   ["overview", BarChart3, "Overview", activityLog.length > 0 ? String(activityLog.length) : null],
                   ["articles", FileText, "Articles", articles.length > 0 ? String(articles.length) : null],
+                  ["notifications", Bell, "Notifications", incomingInvites.length > 0 ? String(incomingInvites.length) : null],
                   ["form", Plus, editingId ? "Edit Article" : "New Article", null],
                 ] as const).map(([v, Icon, label, badge]) => (
                   <button
@@ -1284,6 +1432,17 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
               )}
               <ThemeToggle />
               <button
+                onClick={() => switchView("notifications")}
+                className="hidden sm:flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary hover:border-primary transition-colors relative"
+                title="Notifications"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                <span>Notifications</span>
+                {incomingInvites.length > 0 && (
+                  <span className="font-meta text-[9px] bg-primary/15 text-primary px-1.5 py-0.5">{incomingInvites.length}</span>
+                )}
+              </button>
+              <button
                 onClick={() => loadArticles(true)}
                 className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:block"
                 title="Refresh"
@@ -1317,6 +1476,22 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
                         <p className="font-meta text-[10px] text-muted-foreground truncate">{userEmail}</p>
                       </div>
                       <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          switchView("notifications");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-colors"
+                      >
+                        <Bell className="h-3.5 w-3.5" />
+                        <span>Notifications</span>
+                        {incomingInvites.length > 0 && (
+                          <span className="ml-auto font-meta text-[9px] bg-primary/15 text-primary px-1.5 py-0.5">
+                            {incomingInvites.length}
+                          </span>
+                        )}
+                      </button>
+                      <button
                         onClick={() => { setProfileOpen(false); switchView("profile"); }}
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 font-meta text-xs uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-colors"
                       >
@@ -1342,6 +1517,7 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
             {([
               ["overview", BarChart3, "Overview", activityLog.length > 0 ? String(activityLog.length) : null],
               ["articles", FileText, "Articles", articles.length > 0 ? String(articles.length) : null],
+              ["notifications", Bell, "Notifications", incomingInvites.length > 0 ? String(incomingInvites.length) : null],
               ["form", Plus, editingId ? "Edit Article" : "New Article", null],
             ] as const).map(([v, Icon, label, badge]) => (
               <button
@@ -1365,16 +1541,74 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
           <div className="container flex items-center gap-2 h-9">
             {view === "overview" && <BarChart3 className="h-3.5 w-3.5 text-primary" />}
             {view === "articles" && <FileText className="h-3.5 w-3.5 text-primary" />}
+            {view === "notifications" && <Bell className="h-3.5 w-3.5 text-primary" />}
             {view === "form" && <Plus className="h-3.5 w-3.5 text-primary" />}
             <span className="font-meta text-[10px] uppercase tracking-wider text-primary">
               {view === "overview" && "Overview"}
               {view === "articles" && "Articles"}
+              {view === "notifications" && "Notifications"}
               {view === "form" && (editingId ? "Edit Article" : "New Article")}
             </span>
           </div>
         </div>
 
         <main className="container py-6 max-w-6xl">
+          {view === "notifications" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h1 className="font-heading text-3xl text-foreground tracking-widest">NOTIFICATIONS</h1>
+                <span className="font-meta text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {incomingInvites.length} pending
+                </span>
+              </div>
+
+              {incomingInvites.length === 0 ? (
+                <div className="border border-border p-10 text-center">
+                  <Bell className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="font-body text-sm text-muted-foreground">No collaboration invitations right now.</p>
+                </div>
+              ) : (
+                <div className="border border-primary/40 bg-primary/5">
+                  <div className="px-4 py-3 border-b border-primary/30 flex items-center justify-between">
+                    <h2 className="font-heading text-lg tracking-widest text-foreground">INVITATION NOTIFICATIONS</h2>
+                    <span className="font-meta text-[10px] uppercase tracking-wider text-primary">{incomingInvites.length} pending</span>
+                  </div>
+                  <div className="divide-y divide-primary/20">
+                    {incomingInvites.map((invite) => (
+                      <div key={invite.invite_id} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-body text-sm text-foreground truncate">
+                            Invite to collaborate on: <span className="font-semibold">{invite.article_title}</span>
+                          </p>
+                          <p className="font-meta text-[10px] text-muted-foreground truncate">
+                            From {invite.inviter_email} • {new Date(invite.created_at).toLocaleDateString("en-GB")}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleRespondInvite(invite.invite_id, "accepted")}
+                            disabled={inviteActionId === invite.invite_id}
+                            className="font-meta text-[10px] uppercase tracking-wider border border-green-500 text-green-500 hover:bg-green-500/10 px-2.5 py-1.5 transition-colors disabled:opacity-40"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRespondInvite(invite.invite_id, "rejected")}
+                            disabled={inviteActionId === invite.invite_id}
+                            className="font-meta text-[10px] uppercase tracking-wider border border-destructive text-destructive hover:bg-destructive/10 px-2.5 py-1.5 transition-colors disabled:opacity-40"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── OVERVIEW ── */}
           {view === "overview" && (

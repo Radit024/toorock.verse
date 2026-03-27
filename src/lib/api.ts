@@ -44,10 +44,41 @@ const LIST_ARTICLE_COLUMNS = [
 
 const FULL_ARTICLE_COLUMNS = `${LIST_ARTICLE_COLUMNS},content`;
 
+const isRecoverableRpcError = (message: string, fnName: string) => {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes(fnName.toLowerCase()) ||
+    lower.includes("schema cache") ||
+    lower.includes("structure of query does not match function result type")
+  );
+};
+
 export interface ArticleCollaborator {
   collaborator_id: string;
   email: string;
   added_at: string;
+}
+
+export type CollaborationInviteStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+export interface ArticleCollaborationInvite {
+  invite_id: string;
+  invitee_id: string;
+  invitee_email: string;
+  status: CollaborationInviteStatus;
+  created_at: string;
+  responded_at: string | null;
+}
+
+export interface IncomingCollaborationInvite {
+  invite_id: string;
+  article_id: string;
+  article_slug: string;
+  article_title: string;
+  inviter_id: string;
+  inviter_email: string;
+  created_at: string;
+  status: CollaborationInviteStatus;
 }
 
 export interface AdminLeaderboardEntry {
@@ -83,16 +114,28 @@ export const fetchAllArticles = async (): Promise<DbArticle[]> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not logged in");
 
-  // RLS on `articles` already controls owner/collaborator visibility.
-  // Keep this query simple so shared articles are not accidentally filtered out.
+  const { data: collabRows, error: collabError } = await supabase
+    .from("article_collaborators")
+    .select("article_id")
+    .eq("collaborator_id", user.id);
+
+  if (collabError) throw new Error(collabError.message);
+
+  const collaboratorArticleIds = Array.from(
+    new Set((collabRows ?? []).map((row) => row.article_id).filter(Boolean))
+  );
+
+  const collaboratorIdClause = collaboratorArticleIds.length > 0
+    ? `,id.in.(${collaboratorArticleIds.join(",")})`
+    : "";
+
   const { data, error } = await supabase
     .from("articles")
     .select("*")
+    .or(`owner_id.eq.${user.id}${collaboratorIdClause}`)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   return (data as DbArticle[]) ?? [];
 };
@@ -186,10 +229,9 @@ export const fetchArticleCollaborators = async (articleId: string): Promise<Arti
     return (data ?? []) as ArticleCollaborator[];
   }
 
-  const missingRpc = error.message.includes("list_article_collaborators") ||
-    error.message.includes("schema cache");
+  const recoverableRpc = isRecoverableRpcError(error.message, "list_article_collaborators");
 
-  if (!missingRpc) {
+  if (!recoverableRpc) {
     throw new Error(error.message);
   }
 
@@ -221,6 +263,98 @@ export const removeCollaborator = async (articleId: string, collaboratorId: stri
   const { error } = await supabase.rpc("remove_article_collaborator", {
     p_article_id: articleId,
     p_collaborator_id: collaboratorId,
+  });
+  if (error) throw new Error(error.message);
+};
+
+export const inviteCollaborator = async (articleId: string, inviteeId: string) => {
+  const { error } = await supabase.rpc("invite_article_collaborator", {
+    p_article_id: articleId,
+    p_invitee_id: inviteeId,
+  });
+  if (error) throw new Error(error.message);
+};
+
+export const fetchArticleCollaborationInvites = async (articleId: string): Promise<ArticleCollaborationInvite[]> => {
+  const { data, error } = await supabase.rpc("list_article_collaboration_invites", {
+    p_article_id: articleId,
+  });
+
+  if (!error) {
+    return (data ?? []) as ArticleCollaborationInvite[];
+  }
+
+  const recoverableRpc = isRecoverableRpcError(error.message, "list_article_collaboration_invites");
+  if (!recoverableRpc) throw new Error(error.message);
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("article_collaboration_invites")
+    .select("id, invitee_id, status, created_at, responded_at")
+    .eq("article_id", articleId)
+    .order("created_at", { ascending: false });
+
+  if (fallbackError) throw new Error(fallbackError.message);
+
+  return (fallbackData ?? []).map((item) => ({
+    invite_id: item.id,
+    invitee_id: item.invitee_id,
+    invitee_email: item.invitee_id,
+    status: item.status as CollaborationInviteStatus,
+    created_at: item.created_at,
+    responded_at: item.responded_at,
+  }));
+};
+
+export const fetchMyCollaborationInvites = async (): Promise<IncomingCollaborationInvite[]> => {
+  const { data, error } = await supabase.rpc("list_my_collaboration_invites");
+
+  if (!error) {
+    return (data ?? []) as IncomingCollaborationInvite[];
+  }
+
+  const recoverableRpc = isRecoverableRpcError(error.message, "list_my_collaboration_invites");
+  if (!recoverableRpc) throw new Error(error.message);
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("article_collaboration_invites")
+    .select("id, article_id, inviter_id, created_at, status, articles(id, slug, title)")
+    .eq("invitee_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (fallbackError) throw new Error(fallbackError.message);
+
+  type InviteRow = {
+    id: string;
+    article_id: string;
+    inviter_id: string;
+    created_at: string;
+    status: string;
+    articles: { id: string; slug: string; title: string } | { id: string; slug: string; title: string }[] | null;
+  };
+
+  return ((fallbackData ?? []) as InviteRow[]).map((item) => {
+    const article = Array.isArray(item.articles) ? item.articles[0] : item.articles;
+    return {
+      invite_id: item.id,
+      article_id: item.article_id,
+      article_slug: article?.slug ?? item.article_id,
+      article_title: article?.title ?? "Untitled Article",
+      inviter_id: item.inviter_id,
+      inviter_email: item.inviter_id,
+      created_at: item.created_at,
+      status: item.status as CollaborationInviteStatus,
+    };
+  });
+};
+
+export const respondToCollaborationInvite = async (
+  inviteId: string,
+  action: "accepted" | "rejected"
+) => {
+  const { error } = await supabase.rpc("respond_article_collaboration_invite", {
+    p_invite_id: inviteId,
+    p_action: action,
   });
   if (error) throw new Error(error.message);
 };
