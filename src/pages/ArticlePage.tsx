@@ -6,7 +6,7 @@ import { ArrowLeft, Clock, Share2, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
-import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
+import { fetchPublishedArticles, fetchArticleBySlug, dbToArticle } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
@@ -45,50 +45,91 @@ function parseTableRows(raw: string): string[][] {
 
 const ArticlePage = () => {
   const { id } = useParams<{ id: string }>();
-  const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [article, setArticle] = useState<Article | null>(null);
+  const [relatedAll, setRelatedAll] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadArticles = useCallback(async () => {
-    try {
-      const dbArticles = await fetchPublishedArticles();
-      setAllArticles(dbArticles.map(dbToArticle));
-    } catch {
-      setAllArticles([]);
+  const loadArticlePage = useCallback(async () => {
+    if (!id) {
+      setArticle(null);
+      setRelatedAll([]);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, []);
+
+    setLoading(true);
+    try {
+      const [dbArticle, dbArticles] = await Promise.all([
+        fetchArticleBySlug(id),
+        fetchPublishedArticles(),
+      ]);
+
+      const currentArticle = dbArticle ? dbToArticle(dbArticle) : null;
+      const mappedArticles = dbArticles.map(dbToArticle);
+
+      setArticle(currentArticle);
+
+      if (!currentArticle) {
+        setRelatedAll([]);
+        return;
+      }
+
+      const currentCategories = currentArticle.categories?.length ? currentArticle.categories : [currentArticle.category];
+
+      const related = mappedArticles
+        .filter((candidate) => {
+          if (candidate.id === currentArticle.id) return false;
+          const categories = candidate.categories?.length ? candidate.categories : [candidate.category];
+          return categories.some((category) => currentCategories.includes(category));
+        })
+        .slice(0, 3);
+
+      const otherArticles = mappedArticles
+        .filter((candidate) => {
+          if (candidate.id === currentArticle.id) return false;
+          const categories = candidate.categories?.length ? candidate.categories : [candidate.category];
+          return !categories.some((category) => currentCategories.includes(category));
+        })
+        .slice(0, 3 - related.length);
+
+      setRelatedAll([...related, ...otherArticles]);
+    } catch {
+      setArticle(null);
+      setRelatedAll([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    loadArticles();
-  }, [loadArticles]);
+    loadArticlePage();
+  }, [loadArticlePage]);
 
   useEffect(() => {
     const channel = supabase
       .channel("article-news-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadArticles();
+        loadArticlePage();
       })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadArticles]);
+  }, [loadArticlePage]);
 
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    const url = window.location.href;
-    const shareData = { title: article?.title ?? "ToRock Verse", url };
+    const shareUrl = article ? `${window.location.origin}/share/${encodeURIComponent(article.id)}` : window.location.href;
+    const shareData = { title: article?.title ?? "ToRock Verse", url: shareUrl };
     if (navigator.share) {
-      try { await navigator.share(shareData); } catch {}
+      try { await navigator.share(shareData); } catch (error) { void error; }
     } else {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  const article = allArticles.find((a) => a.id === id);
 
   if (loading) {
     return (
@@ -118,16 +159,9 @@ const ArticlePage = () => {
     );
   }
 
-  const related = allArticles
-    .filter((a) => a.id !== article.id && a.category === article.category)
-    .slice(0, 3);
-  const otherArticles = allArticles
-    .filter((a) => a.id !== article.id && a.category !== article.category)
-    .slice(0, 3 - related.length);
-  const relatedAll = [...related, ...otherArticles];
-
-  const description = article.content[0]
-    ? article.content[0].slice(0, 155) + (article.content[0].length > 155 ? "..." : "")
+  const firstContent = article.content[0] ?? "";
+  const description = firstContent
+    ? firstContent.slice(0, 155) + (firstContent.length > 155 ? "..." : "")
     : `${article.category} news from ToRock Verse.`;
   const canonicalUrl = `https://ToRock.verse/article/${article.id}`;
 

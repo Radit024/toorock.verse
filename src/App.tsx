@@ -1,22 +1,23 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/ScrollToTop";
 import BottomNav from "@/components/BottomNav";
-import Index from "./pages/Index.tsx";
-import ArticlePage from "./pages/ArticlePage.tsx";
-import CategoryPage from "./pages/CategoryPage.tsx";
-import SearchPage from "./pages/SearchPage.tsx";
-import AdminDashboard from "./pages/AdminDashboard.tsx";
-import AdminLeaderboard from "./pages/AdminLeaderboard.tsx";
-import AdminUploaderOverview from "./pages/AdminUploaderOverview.tsx";
-import AdminLogin from "./pages/AdminLogin.tsx";
-import NotFound from "./pages/NotFound.tsx";
+
+const Index = lazy(() => import("./pages/Index.tsx"));
+const ArticlePage = lazy(() => import("./pages/ArticlePage.tsx"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage.tsx"));
+const SearchPage = lazy(() => import("./pages/SearchPage.tsx"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard.tsx"));
+const AdminLeaderboard = lazy(() => import("./pages/AdminLeaderboard.tsx"));
+const AdminUploaderOverview = lazy(() => import("./pages/AdminUploaderOverview.tsx"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
+const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -66,7 +67,15 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppShell />
+          <Suspense
+            fallback={
+              <div className="min-h-screen bg-background flex items-center justify-center">
+                <p className="font-body text-sm text-muted-foreground">Loading...</p>
+              </div>
+            }
+          >
+            <AppShell />
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

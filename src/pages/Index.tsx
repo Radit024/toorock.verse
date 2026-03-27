@@ -11,15 +11,50 @@ import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
+const HOME_ARTICLES_CACHE_KEY = "toorock:home:published-articles:v1";
+const HOME_ARTICLES_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type HomeArticleCache = {
+  savedAt: number;
+  data: Article[];
+};
+
+function readHomeArticleCache(): Article[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HOME_ARTICLES_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as HomeArticleCache;
+    const isFresh = Date.now() - parsed.savedAt < HOME_ARTICLES_CACHE_TTL_MS;
+    if (!isFresh || !Array.isArray(parsed.data)) return [];
+    return parsed.data;
+  } catch (error) {
+    void error;
+    return [];
+  }
+}
+
+function writeHomeArticleCache(data: Article[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: HomeArticleCache = { savedAt: Date.now(), data };
+    localStorage.setItem(HOME_ARTICLES_CACHE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    void error;
+  }
+}
+
 const Index = () => {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<Article[]>(() => readHomeArticleCache());
 
   const loadArticles = useCallback(async () => {
     try {
       const dbArticles = await fetchPublishedArticles();
-      setArticles(dbArticles.map(dbToArticle));
-    } catch {
-      setArticles([]);
+      const mapped = dbArticles.map(dbToArticle);
+      setArticles(mapped);
+      writeHomeArticleCache(mapped);
+    } catch (error) {
+      void error;
     }
   }, []);
 
@@ -83,6 +118,9 @@ const Index = () => {
                     <img
                       src={latestArticles[0].image}
                       alt={latestArticles[0].title}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                       className="article-card-image w-full h-full min-h-[260px] md:min-h-[380px] object-cover"
                     />
                     <div className="scanline-overlay absolute inset-0" />
@@ -107,7 +145,7 @@ const Index = () => {
                 {latestArticles[1] && (
                   <Link to={`/article/${latestArticles[1].id}`} className="block group article-card border-b border-border">
                     <div className="relative overflow-hidden">
-                      <img src={latestArticles[1].image} alt={latestArticles[1].title} className="article-card-image w-full h-36 md:h-44 object-cover" />
+                      <img src={latestArticles[1].image} alt={latestArticles[1].title} loading="lazy" decoding="async" className="article-card-image w-full h-36 md:h-44 object-cover" />
                       <div className="scanline-overlay absolute inset-0" />
                       {latestArticles[1].isBreaking && (
                         <span className="absolute top-2 left-2 bg-primary text-primary-foreground font-heading text-xs px-2 py-0.5 tracking-widest">BREAKING</span>
@@ -130,7 +168,7 @@ const Index = () => {
                 {latestArticles[2] && (
                   <Link to={`/article/${latestArticles[2].id}`} className="block group article-card">
                     <div className="relative overflow-hidden">
-                      <img src={latestArticles[2].image} alt={latestArticles[2].title} className="article-card-image w-full h-36 md:h-44 object-cover" />
+                      <img src={latestArticles[2].image} alt={latestArticles[2].title} loading="lazy" decoding="async" className="article-card-image w-full h-36 md:h-44 object-cover" />
                       <div className="scanline-overlay absolute inset-0" />
                       {latestArticles[2].isBreaking && (
                         <span className="absolute top-2 left-2 bg-primary text-primary-foreground font-heading text-xs px-2 py-0.5 tracking-widest">BREAKING</span>
@@ -155,7 +193,7 @@ const Index = () => {
                 {latestArticles.slice(3, 6).map((article) => (
                   <Link key={article.id} to={`/article/${article.id}`} className="block group article-card">
                     <div className="relative overflow-hidden">
-                      <img src={article.image} alt={article.title} className="article-card-image w-full h-28 md:h-36 object-cover" />
+                      <img src={article.image} alt={article.title} loading="lazy" decoding="async" className="article-card-image w-full h-28 md:h-36 object-cover" />
                       <div className="scanline-overlay absolute inset-0" />
                       {article.isBreaking && (
                         <span className="absolute top-2 left-2 bg-primary text-primary-foreground font-heading text-[10px] px-1.5 py-0.5 tracking-widest">BREAKING</span>

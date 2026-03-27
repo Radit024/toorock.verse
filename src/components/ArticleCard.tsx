@@ -23,6 +23,8 @@ const ArticleCard = ({ id, image, title, category, date, isBreaking, size = "med
           <img
             src={image}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className={`article-card-image w-full object-cover ${
               size === "large" ? "h-72 md:h-full" : size === "small" ? "h-36" : "h-48"
             }`}

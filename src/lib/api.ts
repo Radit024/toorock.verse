@@ -17,11 +17,32 @@ export interface DbArticle {
   read_time: string;
   is_breaking: boolean;
   owner_id: string | null;
-  content: string[];
+  content?: string[];
   published: boolean;
   created_at: string;
   updated_at: string;
 }
+
+const LIST_ARTICLE_COLUMNS = [
+  "id",
+  "slug",
+  "title",
+  "category",
+  "categories",
+  "image_url",
+  "author_name",
+  "author_role",
+  "author_avatar",
+  "author_bio",
+  "read_time",
+  "is_breaking",
+  "owner_id",
+  "published",
+  "created_at",
+  "updated_at",
+].join(",");
+
+const FULL_ARTICLE_COLUMNS = `${LIST_ARTICLE_COLUMNS},content`;
 
 export interface ArticleCollaborator {
   collaborator_id: string;
@@ -47,10 +68,11 @@ export interface AdminUploaderCategoryOverviewEntry {
   last_upload_at: string | null;
 }
 
-export const fetchPublishedArticles = async (): Promise<DbArticle[]> => {
+export const fetchPublishedArticles = async (options?: { includeContent?: boolean }): Promise<DbArticle[]> => {
+  const selectColumns = options?.includeContent ? FULL_ARTICLE_COLUMNS : LIST_ARTICLE_COLUMNS;
   const { data, error } = await supabase
     .from("articles")
-    .select("*")
+    .select(selectColumns)
     .eq("published", true)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -82,7 +104,7 @@ export const fetchAllArticles = async (): Promise<DbArticle[]> => {
     return ((fallbackData as DbArticle[]) ?? []).filter((a) => a.owner_id === user.id);
   }
 
-  let articles = data as (DbArticle & { article_collaborators: any[] })[];
+  let articles = data as (DbArticle & { article_collaborators: Array<{ collaborator_id: string }> })[];
   
   // Filter locally: own or collaborated
   articles = articles.filter(a => {
@@ -97,7 +119,7 @@ export const fetchAllArticles = async (): Promise<DbArticle[]> => {
 export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null> => {
   const { data, error } = await supabase
     .from("articles")
-    .select("*")
+    .select(FULL_ARTICLE_COLUMNS)
     .eq("slug", slug)
     .eq("published", true)
     .single();
@@ -115,7 +137,7 @@ export const createArticle = async (
   articleData.owner_id = user?.id || null;
   const { data, error } = await supabase
     .from("articles")
-    .insert(articleData as any)
+    .insert(articleData as Partial<DbArticle>)
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -225,7 +247,18 @@ export const removeCollaborator = async (articleId: string, collaboratorId: stri
 export const fetchAdminUploadLeaderboard = async (): Promise<AdminLeaderboardEntry[]> => {
   const { data, error } = await supabase.rpc("admin_upload_leaderboard");
   if (!error) {
-    const normalized = (data ?? []).map((row: any) => ({
+    type LeaderboardRpcRow = {
+      user_id: string;
+      display_name?: string | null;
+      email?: string | null;
+      registered_at: string;
+      total_articles?: number | string | null;
+      published_articles?: number | string | null;
+      draft_articles?: number | string | null;
+      last_upload_at?: string | null;
+    };
+
+    const normalized = ((data ?? []) as LeaderboardRpcRow[]).map((row) => ({
       user_id: row.user_id,
       display_name: row.display_name ?? row.email ?? row.user_id,
       registered_at: row.registered_at,
@@ -373,7 +406,7 @@ function sortLeaderboardRows(rows: AdminLeaderboardEntry[]): AdminLeaderboardEnt
 }
 
 export const dbToArticle = (db: DbArticle): Article => ({
-  id: db.slug,
+  id: db.slug || db.id,
   image: db.image_url || "",
   title: db.title,
   category: db.categories?.[0] || db.category,
@@ -382,7 +415,7 @@ export const dbToArticle = (db: DbArticle): Article => ({
   isBreaking: db.is_breaking,
   author: { name: db.author_name, role: db.author_role, avatar: db.author_avatar, bio: db.author_bio },
   readTime: db.read_time,
-  content: db.content,
+  content: db.content ?? [],
 });
 
 function formatRelativeDate(dateStr: string): string {
