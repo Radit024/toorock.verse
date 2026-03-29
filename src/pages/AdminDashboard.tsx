@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import PageTransition from "@/components/PageTransition";
 import ThemeToggle from "@/components/ThemeToggle";
 import ImageUpload from "@/components/ImageUpload";
-import { supabase } from "@/integrations/supabase/client";
+import { adminLogout, getAdminSession } from "@/lib/admin-auth";
 import {
   fetchAllArticles,
   createArticle,
@@ -28,6 +28,8 @@ import {
   respondToCollaborationInvite,
   deleteStorageFilesByUrls,
   fetchAdminUploadLeaderboard,
+  fetchMyProfile,
+  updateMyProfile,
   type AdminLeaderboardEntry,
   type ArticleCollaborationInvite,
   type IncomingCollaborationInvite,
@@ -171,8 +173,8 @@ const AdminDashboard = () => {
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    getAdminSession().then((data) => {
+      if (!data.authenticated) {
         navigate("/admin/login", { replace: true });
       } else {
         setAuthed(true);
@@ -184,7 +186,7 @@ const AdminDashboard = () => {
   if (!checked || !authed) return null;
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await adminLogout();
     navigate("/admin/login", { replace: true });
   };
 
@@ -230,27 +232,30 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
-      setCurrentUserId(data.user.id);
-      setUserEmail(data.user.email ?? "");
-      const m = data.user.user_metadata ?? {};
-      setProfile({
-        name: m.name ?? "",
-        role: m.role ?? "Editor",
-        avatar: m.avatar ?? "",
-        bio: m.bio ?? "",
+    fetchMyProfile()
+      .then((data) => {
+        setCurrentUserId(data.id);
+        setUserEmail(data.email);
+        setProfile({
+          name: data.name,
+          role: data.role,
+          avatar: data.avatar,
+          bio: data.bio,
+        });
+      })
+      .catch(() => {
+        toast({ title: "Session expired", description: "Please sign in again.", variant: "destructive" });
       });
-    });
   }, []);
 
   const saveProfile = async () => {
     setProfileSaving(true);
-    const { error } = await supabase.auth.updateUser({ data: profile });
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await updateMyProfile(profile);
       toast({ title: "Profile saved" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast({ title: "Error", description: msg, variant: "destructive" });
     }
     setProfileSaving(false);
   };
@@ -476,22 +481,13 @@ const AdminDashboardContent = ({ onLogout }: { onLogout: () => void }) => {
   }, [loadIncomingInvites]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("admin-dashboard-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadArticles(true);
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "article_collaborators" }, () => {
-        loadArticles(true);
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "article_collaboration_invites" }, () => {
-        loadArticles(true);
-        loadIncomingInvites();
-      })
-      .subscribe();
+    const interval = window.setInterval(() => {
+      loadArticles(true);
+      loadIncomingInvites();
+    }, 20000);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
   }, [loadIncomingInvites]);
 

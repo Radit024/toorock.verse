@@ -97,8 +97,8 @@ supabase/
 Create a `.env` file at the project root:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=your-anon-key
 ```
 
 ### Install & Run
@@ -136,7 +136,7 @@ The project is configured for **Vercel** deployment via `vercel.json`.
 
 1. Push to GitHub
 2. Import into Vercel
-3. Set environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
+3. Set environment variables (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`)
 4. Deploy
 
 ---

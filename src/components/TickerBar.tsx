@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPublishedArticles } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
 
 interface TickerItem {
   id: string;
@@ -44,14 +43,13 @@ const TickerBar = () => {
   useEffect(() => {
     loadItems();
 
-    const channel = supabase
-      .channel("ticker-articles")
-      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadItems();
-      })
-      .subscribe();
+    const interval = window.setInterval(() => {
+      loadItems();
+    }, 30000);
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.clearInterval(interval);
+    };
   }, []);
 
   const doubled = [...items, ...items];

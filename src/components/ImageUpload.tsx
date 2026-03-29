@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadArticleImage } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 interface ImageUploadProps {
@@ -25,21 +25,17 @@ const ImageUpload = ({ value, onChange, onUploaded }: ImageUploadProps) => {
     }
 
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-    const { error } = await supabase.storage.from("article-images").upload(path, file);
-    if (error) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    try {
+      const publicUrl = await uploadArticleImage(file);
+      onChange(publicUrl);
+      onUploaded?.(publicUrl);
+      toast({ title: "Uploaded", description: "Image ready" });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({ title: "Upload failed", description: msg, variant: "destructive" });
+    } finally {
       setUploading(false);
-      return;
     }
-
-    const { data: urlData } = supabase.storage.from("article-images").getPublicUrl(path);
-    onChange(urlData.publicUrl);
-    onUploaded?.(urlData.publicUrl);
-    setUploading(false);
-    toast({ title: "Uploaded", description: "Image ready" });
   }, [onChange, onUploaded]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

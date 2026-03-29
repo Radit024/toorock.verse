@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Crown, LogOut, RefreshCw } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import ThemeToggle from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
 import {
   fetchAdminUploadLeaderboard,
   fetchAdminUploaderCategoryOverview,
@@ -11,6 +10,7 @@ import {
   type AdminUploaderCategoryOverviewEntry,
 } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { adminLogout, getAdminSession } from "@/lib/admin-auth";
 
 type NavState = {
   row?: AdminLeaderboardEntry;
@@ -68,8 +68,8 @@ const AdminUploaderOverview = () => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    getAdminSession().then((data) => {
+      if (!data.authenticated) {
         navigate("/admin/login", { replace: true });
       } else {
         setAuthed(true);
@@ -82,15 +82,12 @@ const AdminUploaderOverview = () => {
     if (!authed || !userId) return;
     loadPage();
 
-    const channel = supabase
-      .channel("admin-uploader-overview-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadPage(true);
-      })
-      .subscribe();
+    const interval = window.setInterval(() => {
+      loadPage(true);
+    }, 20000);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
   }, [authed, userId]);
 
@@ -111,7 +108,7 @@ const AdminUploaderOverview = () => {
   if (!checked || !authed) return null;
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await adminLogout();
     navigate("/admin/login", { replace: true });
   };
 

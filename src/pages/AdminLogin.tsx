@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Loader2, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import ThemeToggle from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
+import { adminLogin, getAdminSession } from "@/lib/admin-auth";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -14,8 +14,8 @@ const AdminLogin = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate("/admin", { replace: true });
+    getAdminSession().then((data) => {
+      if (data.authenticated) navigate("/admin", { replace: true });
     });
   }, [navigate]);
 
@@ -24,8 +24,7 @@ const AdminLogin = () => {
     setLoading(true);
     setError(null);
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) throw authError;
+      await adminLogin(email, password);
       navigate("/admin", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

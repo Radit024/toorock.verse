@@ -3,9 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Trophy, RefreshCw, Crown, LogOut } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import ThemeToggle from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
 import { fetchAdminUploadLeaderboard, type AdminLeaderboardEntry } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { adminLogout, getAdminSession } from "@/lib/admin-auth";
 
 const AdminLeaderboard = () => {
   const navigate = useNavigate();
@@ -32,8 +32,8 @@ const AdminLeaderboard = () => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    getAdminSession().then((data) => {
+      if (!data.authenticated) {
         navigate("/admin/login", { replace: true });
       } else {
         setAuthed(true);
@@ -46,22 +46,19 @@ const AdminLeaderboard = () => {
     if (!authed) return;
     loadLeaderboard();
 
-    const channel = supabase
-      .channel("admin-leaderboard-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadLeaderboard(true);
-      })
-      .subscribe();
+    const interval = window.setInterval(() => {
+      loadLeaderboard(true);
+    }, 20000);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
   }, [authed]);
 
   if (!checked || !authed) return null;
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await adminLogout();
     navigate("/admin/login", { replace: true });
   };
 

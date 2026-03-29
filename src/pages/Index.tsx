@@ -8,7 +8,6 @@ import PageTransition from "@/components/PageTransition";
 import SectionBlock from "@/components/SectionBlock";
 import PullToRefresh from "@/components/PullToRefresh";
 import { fetchPublishedArticles, dbToArticle } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const HOME_ARTICLES_CACHE_KEY = "toorock:home:published-articles:v1";
@@ -63,13 +62,13 @@ const Index = () => {
   }, [loadArticles]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("articles-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadArticles();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = window.setInterval(() => {
+      loadArticles();
+    }, 30000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
   }, [loadArticles]);
 
   const latestArticles = articles.slice(0, 6);

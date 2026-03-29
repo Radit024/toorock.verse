@@ -7,7 +7,6 @@ import Navbar from "@/components/Navbar";
 import ArticleCard from "@/components/ArticleCard";
 import PageTransition from "@/components/PageTransition";
 import { fetchPublishedArticles, fetchArticleBySlug, dbToArticle } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/data/articles";
 
 const TABLE_BLOCK_PREFIX = "::table::";
@@ -106,14 +105,12 @@ const ArticlePage = () => {
   }, [loadArticlePage]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("article-news-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "articles" }, () => {
-        loadArticlePage();
-      })
-      .subscribe();
+    const interval = window.setInterval(() => {
+      loadArticlePage();
+    }, 30000);
+
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
   }, [loadArticlePage]);
 
