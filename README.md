@@ -37,15 +37,15 @@ ToRock Verse is a modern, full-stack news & editorial platform covering the worl
 
 | Layer | Technology |
 |---|---|
-| Framework | React 18 + TypeScript |
-| Build tool | Vite |
+| Framework | Next.js (Pages Router) + React 18 + TypeScript |
+| Build tool | Next.js build system |
 | Styling | Tailwind CSS + custom fonts (Bebas Neue, IBM Plex Mono, Inter) |
 | UI Components | shadcn/ui (Radix UI primitives) |
 | Backend / DB | Supabase (PostgreSQL) |
 | Auth | Supabase Auth |
 | Storage | Supabase Storage |
 | Realtime | Supabase Realtime (`postgres_changes`) |
-| Routing | React Router v6 |
+| Routing | Next.js page routing + React Router (client-side app shell) |
 | SEO | react-helmet-async + structured data (JSON-LD) |
 | Testing | Vitest + Playwright |
 | Deployment | Vercel |
@@ -97,8 +97,8 @@ supabase/
 Create a `.env` file at the project root:
 
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
 ```
 
 ### Install & Run
@@ -113,8 +113,8 @@ npm run dev
 # Build for production
 npm run build
 
-# Preview production build
-npm run preview
+# Run production build locally
+npm run start
 ```
 
 ### Database Setup
@@ -132,11 +132,11 @@ supabase/migrations/20260311130000_...sql   — author_bio column
 
 ## Deployment
 
-The project is configured for **Vercel** deployment via `vercel.json` (SPA rewrites included).
+The project is configured for **Vercel** deployment via `vercel.json`.
 
 1. Push to GitHub
 2. Import into Vercel
-3. Set environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`)
+3. Set environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
 4. Deploy
 
 ---
