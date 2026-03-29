@@ -4,39 +4,39 @@
 
   <!-- Homepage -->
   <url>
-    <loc>https://ToRock.verse/</loc>
+    <loc>https://www.torockverse.site/</loc>
     <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <!-- Category pages -->
   <url>
-    <loc>https://ToRock.verse/category/Anime</loc>
+    <loc>https://www.torockverse.site/category/Anime</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ToRock.verse/category/Games</loc>
+    <loc>https://www.torockverse.site/category/Games</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ToRock.verse/category/Esports</loc>
+    <loc>https://www.torockverse.site/category/Esports</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ToRock.verse/category/Culture</loc>
+    <loc>https://www.torockverse.site/category/Culture</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ToRock.verse/category/Film</loc>
+    <loc>https://www.torockverse.site/category/Film</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ToRock.verse/category/Reviews</loc>
+    <loc>https://www.torockverse.site/category/Reviews</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
