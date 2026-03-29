@@ -1,9 +1,3 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "routes": [
-    { "src": "/share/([^/]+)", "dest": "/api/share?id=$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "buildCommand": "npm run build"
 }

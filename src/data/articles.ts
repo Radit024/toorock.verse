@@ -29,7 +29,7 @@ export interface Article {
 export const articles: Article[] = [
   {
     id: "gundam-requiem-s2",
-    image: article1,
+    image: article1.src,
     title: "Gundam: Requiem for Vengeance Season 2 Confirmed with Unreal Engine 5.5",
     category: "Anime",
     date: "2 hours ago",
@@ -45,7 +45,7 @@ export const articles: Article[] = [
   },
   {
     id: "elden-ring-nightreign",
-    image: article2,
+    image: article2.src,
     title: "Elden Ring Nightreign — Everything We Know About the Standalone Expansion",
     category: "Games",
     date: "5 hours ago",
@@ -60,7 +60,7 @@ export const articles: Article[] = [
   },
   {
     id: "solo-leveling-s3",
-    image: article3,
+    image: article3.src,
     title: "Solo Leveling Season 3 Announced — Arise Arc Gets Anime Adaptation",
     category: "Anime",
     date: "8 hours ago",
@@ -75,7 +75,7 @@ export const articles: Article[] = [
   },
   {
     id: "cyberpunk-project-orion",
-    image: article4,
+    image: article4.src,
     title: "Cyberpunk 2077 Sequel 'Project Orion' First Details Leak from CD Projekt Red",
     category: "Games",
     date: "12 hours ago",
@@ -91,7 +91,7 @@ export const articles: Article[] = [
   },
   {
     id: "macross-delta-finale",
-    image: article5,
+    image: article5.src,
     title: "Macross Delta Movie Trilogy Finale Drops Stunning New Trailer",
     category: "Anime",
     date: "1 day ago",
@@ -106,7 +106,7 @@ export const articles: Article[] = [
   },
   {
     id: "your-name-producer-new-film",
-    image: article6,
+    image: article6.src,
     title: "Your Name Producer Announces New Original Anime Film for 2027",
     category: "Film",
     date: "1 day ago",
@@ -122,7 +122,7 @@ export const articles: Article[] = [
   // --- ANIME SECTION ---
   {
     id: "mecha-uprising-anime",
-    image: anime1,
+    image: anime1.src,
     title: "Code Geass: Rozé of the Recapture Part 2 Reveals New Knightmare Frames",
     category: "Anime",
     date: "3 hours ago",
@@ -137,7 +137,7 @@ export const articles: Article[] = [
   },
   {
     id: "dark-hero-anime",
-    image: anime2,
+    image: anime2.src,
     title: "Vinland Saga Author's New Manga Gets Immediate Anime Greenlight",
     category: "Anime",
     date: "6 hours ago",
@@ -153,7 +153,7 @@ export const articles: Article[] = [
   // --- GAMES SECTION ---
   {
     id: "dragon-siege-rpg",
-    image: games1,
+    image: games1.src,
     title: "Dragon's Dogma 3 Reportedly in Development with Full Open-World Co-op",
     category: "Games",
     date: "4 hours ago",
@@ -168,7 +168,7 @@ export const articles: Article[] = [
   },
   {
     id: "neon-arena-fps",
-    image: games2,
+    image: games2.src,
     title: "Riot's Project K Gameplay Leaked: Tactical Arena Shooter with Hero Abilities",
     category: "Games",
     date: "7 hours ago",
@@ -184,7 +184,7 @@ export const articles: Article[] = [
   // --- ESPORTS SECTION ---
   {
     id: "esports-tournament-2026",
-    image: esports1,
+    image: esports1.src,
     title: "VALORANT Champions 2026 Seoul Sells Out 50,000-Seat Stadium in Minutes",
     category: "Esports",
     date: "3 hours ago",
@@ -199,7 +199,7 @@ export const articles: Article[] = [
   },
   {
     id: "esports-team-victory",
-    image: esports2,
+    image: esports2.src,
     title: "LOUD Wins VCT Americas 2026 in Dominant Fashion, Secures Champions Slot",
     category: "Esports",
     date: "10 hours ago",
@@ -215,7 +215,7 @@ export const articles: Article[] = [
   // --- CULTURE SECTION ---
   {
     id: "anime-film-premiere",
-    image: culture1,
+    image: culture1.src,
     title: "Studio Ghibli Theme Park Expansion Adds Howl's Moving Castle Zone",
     category: "Culture",
     date: "1 day ago",
@@ -230,7 +230,7 @@ export const articles: Article[] = [
   },
   {
     id: "gaming-convention-retro",
-    image: culture2,
+    image: culture2.src,
     title: "Tokyo Game Show 2026 Announces Retro Gaming Hall with 200+ Playable Classics",
     category: "Culture",
     date: "2 days ago",

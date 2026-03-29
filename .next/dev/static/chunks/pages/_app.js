@@ -1,0 +1,14 @@
+__turbopack_load_page_chunks__("/_app", [
+  "static/chunks/01j-_next_dist_compiled_13_nu-9._.js",
+  "static/chunks/01j-_next_dist_shared_lib_0ogd3ey._.js",
+  "static/chunks/01j-_next_dist_client_02cv_~9._.js",
+  "static/chunks/01j-_next_dist_07vy6qj._.js",
+  "static/chunks/01j-_react_10ehcp1._.js",
+  "static/chunks/01j-_react-dom_cjs_react-dom_development_0mec_a3.js",
+  "static/chunks/01j-_react-dom_0mo52kl._.js",
+  "static/chunks/01j-_0h5o85_._.js",
+  "static/chunks/[root-of-the-server]__0h~p5wj._.js",
+  "static/chunks/Toorock Project_toorock_verse_src_index_0xmilka.css",
+  "static/chunks/Toorock Project_toorock_verse_pages__app_07xvfw~._.js",
+  "static/chunks/turbopack-Toorock Project_toorock_verse_pages__app_0u1p76~._.js"
+])

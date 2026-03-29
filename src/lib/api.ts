@@ -107,7 +107,7 @@ export const fetchPublishedArticles = async (options?: { includeContent?: boolea
     .eq("published", true)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data as DbArticle[]) ?? [];
+  return (data as unknown as DbArticle[]) ?? [];
 };
 
 export const fetchAllArticles = async (): Promise<DbArticle[]> => {
@@ -137,7 +137,7 @@ export const fetchAllArticles = async (): Promise<DbArticle[]> => {
 
   if (error) throw new Error(error.message);
 
-  return (data as DbArticle[]) ?? [];
+  return (data as unknown as DbArticle[]) ?? [];
 };
 
 export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null> => {
@@ -148,24 +148,25 @@ export const fetchArticleBySlug = async (slug: string): Promise<DbArticle | null
     .eq("published", true)
     .single();
   if (error) return null;
-  return data as DbArticle;
+  return data as unknown as DbArticle;
 };
 
 export const createArticle = async (
-  article: Partial<Omit<DbArticle, "id" | "created_at" | "updated_at">>
+  article: Omit<DbArticle, "id" | "created_at" | "updated_at">
 ): Promise<DbArticle> => {
   const { data: { user } } = await supabase.auth.getUser();
-  const articleData = { ...article, owner_id: user?.id || null } as Record<string, unknown>;
   // Never trust incoming owner_id from caller.
-  delete articleData.owner_id;
-  articleData.owner_id = user?.id || null;
+  const articleData: Omit<DbArticle, "id" | "created_at" | "updated_at"> = {
+    ...article,
+    owner_id: user?.id || null,
+  };
   const { data, error } = await supabase
     .from("articles")
-    .insert(articleData as Partial<DbArticle>)
+    .insert(articleData)
     .select()
     .single();
   if (error) throw new Error(error.message);
-  return data as DbArticle;
+  return data as unknown as DbArticle;
 };
 
 export const updateArticle = async (
@@ -183,7 +184,7 @@ export const updateArticle = async (
     .select()
     .single();
   if (error) throw new Error(error.message);
-  return data as DbArticle;
+  return data as unknown as DbArticle;
 };
 
 export const deleteArticle = async (id: string): Promise<void> => {
@@ -226,7 +227,7 @@ export const fetchArticleCollaborators = async (articleId: string): Promise<Arti
   });
 
   if (!error) {
-    return (data ?? []) as ArticleCollaborator[];
+    return (data ?? []) as unknown as ArticleCollaborator[];
   }
 
   const recoverableRpc = isRecoverableRpcError(error.message, "list_article_collaborators");
@@ -281,7 +282,7 @@ export const fetchArticleCollaborationInvites = async (articleId: string): Promi
   });
 
   if (!error) {
-    return (data ?? []) as ArticleCollaborationInvite[];
+    return (data ?? []) as unknown as ArticleCollaborationInvite[];
   }
 
   const recoverableRpc = isRecoverableRpcError(error.message, "list_article_collaboration_invites");
@@ -309,7 +310,7 @@ export const fetchMyCollaborationInvites = async (): Promise<IncomingCollaborati
   const { data, error } = await supabase.rpc("list_my_collaboration_invites");
 
   if (!error) {
-    return (data ?? []) as IncomingCollaborationInvite[];
+    return (data ?? []) as unknown as IncomingCollaborationInvite[];
   }
 
   const recoverableRpc = isRecoverableRpcError(error.message, "list_my_collaboration_invites");
@@ -382,7 +383,7 @@ export const fetchAdminUploadLeaderboard = async (): Promise<AdminLeaderboardEnt
       draft_articles: Number(row.draft_articles ?? 0),
       last_upload_at: row.last_upload_at ?? null,
     }));
-    return sortLeaderboardRows(normalized as AdminLeaderboardEntry[]);
+    return sortLeaderboardRows(normalized as unknown as AdminLeaderboardEntry[]);
   }
 
   const missingRpc = error.message.includes("admin_upload_leaderboard") ||

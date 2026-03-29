@@ -1,0 +1,12 @@
+{
+  "[project]/Toorock Project/toorock.verse/src/App.tsx [client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/Toorock Project/toorock.verse/src/App.tsx [client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/Toorock Project_toorock_verse_src_pages_0m2odpk._.js",
+      "static/chunks/01j-_@remix-run_router_dist_router_12jx-a8.js",
+      "static/chunks/01j-_0thazit._.js",
+      "static/chunks/Toorock Project_toorock_verse_src_01ijywc._.js",
+      "static/chunks/Toorock Project_toorock_verse_src_App_tsx_0dnkxmg._.js"
+    ]
+  }
+}

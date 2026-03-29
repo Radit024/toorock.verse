@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///E:/Vs%20Code%20Project/Toorock%20Project/toorock.verse/pages/%5B%5B...slug%5D%5D.tsx"],"sourcesContent":["import dynamic from \"next/dynamic\";\r\n\r\nconst ClientApp = dynamic(() => import(\"../src/App\"), {\r\n  ssr: false,\r\n  loading: () => (\r\n    <div className=\"min-h-screen bg-background flex items-center justify-center\">\r\n      <p className=\"font-body text-sm text-muted-foreground\">Loading...</p>\r\n    </div>\r\n  ),\r\n});\r\n\r\nexport default function CatchAllPage() {\r\n  return <ClientApp />;\r\n}\r\n"],"names":["ClientApp","ssr","loading","className","CatchAllPage"],"mappings":";;;;;AAAA;;;;AAEA,MAAMA,YAAY,IAAA,2KAAO,EAAC;;;;;;IACxBC,KAAK;IACLC,SAAS,kBACP,qKAAC;YAAIC,WAAU;sBACb,cAAA,qKAAC;gBAAEA,WAAU;0BAA0C;;;;;;;;;;;;AAK9C,SAASC;IACtB,qBAAO,qKAACJ;;;;;AACV"}}]
+}
