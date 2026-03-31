@@ -104,16 +104,6 @@ const ArticlePage = () => {
     loadArticlePage();
   }, [loadArticlePage]);
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      loadArticlePage();
-    }, 30000);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [loadArticlePage]);
-
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
