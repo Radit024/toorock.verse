@@ -73,6 +73,14 @@ function extractStoragePathFromUrl(url: string, bucket = ARTICLE_IMAGE_BUCKET): 
   }
 }
 
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 async function getAuthedClient(req: NextApiRequest) {
   const token = getAdminAccessToken(req);
   if (!token) {
@@ -698,17 +706,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (action === "updateMyProfile") {
       const profile = payload?.profile ?? {};
-      const { error } = await client.auth.updateUser({
-        data: {
-          name: profile?.name ?? "",
-          role: profile?.role ?? "Editor",
-          avatar: profile?.avatar ?? "",
-          bio: profile?.bio ?? "",
+      const accessToken = getAdminAccessToken(req);
+      if (!accessToken) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const supabaseUrl = getRequiredEnv("SUPABASE_URL");
+      const publishableKey = getRequiredEnv("SUPABASE_PUBLISHABLE_KEY");
+      const updateResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: publishableKey,
+          Authorization: `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({
+          data: {
+            name: profile?.name ?? "",
+            role: profile?.role ?? "Editor",
+            avatar: profile?.avatar ?? "",
+            bio: profile?.bio ?? "",
+          },
+        }),
       });
 
-      if (error) {
-        res.status(400).json({ error: error.message });
+      if (!updateResponse.ok) {
+        const payload = await updateResponse.json().catch(() => ({}));
+        const message =
+          typeof payload?.error_description === "string"
+            ? payload.error_description
+            : typeof payload?.msg === "string"
+              ? payload.msg
+              : typeof payload?.error === "string"
+                ? payload.error
+                : "Failed to update profile";
+        res.status(400).json({ error: message });
         return;
       }
 
